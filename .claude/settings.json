@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run test)",
+      "Bash(npm run test:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run setup)",
+      "Bash(npm run storybook)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx playwright install*)",
+      "Bash(npx msw init*)"
+    ],
+    "deny": []
+  }
+}

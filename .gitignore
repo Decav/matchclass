@@ -1,0 +1,78 @@
+# Dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+dist-ssr/
+build/
+*.local
+
+# Variables de entorno — nunca versionar
+# .env.example SI se versiona (es el template)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.staging
+.env.production
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+*-debug.log
+.runtimeconfig.json
+# Datos exportados de los emuladores
+e2e/fixtures/**/*.local
+
+# Tests
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Storybook
+storybook-static/
+
+# Caches
+.vite/
+.cache/
+.eslintcache
+.turbo/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editores e IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Claude Code — configuración personal, no del equipo
+.claude/settings.local.json
+.claude/agent-memory/
