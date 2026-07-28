@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// MatchClass — autorizacion real del sistema.
+// El chequeo de roles en el frontend es UX; esto es lo que protege los datos.
+// Modelo de datos: docs/tech-document.md §2
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn()    { return request.auth != null; }
+    function isOwner(uid)    { return isSignedIn() && request.auth.uid == uid; }
+    // Distingue al ayudante (cuenta real) del alumno (sesion anonima).
+    // Sin esto, un alumno anonimo podria crear salas: isSignedIn() tambien es true para el.
+    function isFullAccount() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    // Perfil del ayudante
+    match /users/{uid} {
+      allow read:   if isOwner(uid);
+      allow create: if isOwner(uid) && isFullAccount();
+      // No auto-promoverse a admin
+      allow update: if isOwner(uid) && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    match /rooms/{roomId} {
+      // Lectura publica: el alumno resuelve el codigo corto ANTES de tener sesion.
+      // Consecuencia asumida: quien adivine un codigo ve el nombre de la sala.
+      // No poner datos sensibles en Room.
+      allow read:           if true;
+      allow create:         if isFullAccount() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isFullAccount() && resource.data.createdBy == request.auth.uid;
+
+      match /responses/{responseId} {
+        // El ayudante dueño ve todas las respuestas; el alumno solo la suya
+        allow read: if isOwner(responseId)
+                    || (isFullAccount()
+                        && get(/databases/$(database)/documents/rooms/$(roomId)).data.createdBy == request.auth.uid);
+
+        // El id del documento DEBE ser el uid: asi un alumno no puede escribir por otro
+        allow create, update: if isOwner(responseId)
+                              && get(/databases/$(database)/documents/rooms/$(roomId)).data.status == 'active';
+
+        allow delete: if isOwner(responseId);
+      }
+    }
+
+    // Resultados: los calcula el servidor. Si el cliente pudiera escribirlos,
+    // cualquier alumno podria fabricar el ranking.
+    match /roomResults/{roomId} {
+      allow read:  if true;
+      allow write: if false;
+    }
+  }
+}

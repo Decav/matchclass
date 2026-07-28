@@ -6,23 +6,26 @@ Versiones exactas de `package.json` del proyecto. Fecha de referencia: 2026-03-2
 
 ## Tabla de Tecnologias
 
+> Versiones **verificadas contra `package-lock.json`** tras RC-001 (2026-07-28).
+> Requiere Node `^20.19.0 || >=22.12.0` (exigencia de Vite 8). El repo fija `22` en `.nvmrc`.
+
 | Tecnologia | Version | Capa | Alias | Proposito |
 |-----------|---------|------|-------|-----------|
-| React | 19.2.4 | modules, global | — | Framework UI principal |
+| React | 19.2.8 | modules, global | — | Framework UI principal |
 | TypeScript | 5.9.3 | todas | — | Tipado estatico, strict mode |
-| Vite | 8.0.1 | raiz | — | Build tool, dev server, bundler |
-| React Router DOM | 7.13.1 | modules, app | — | Enrutamiento SPA, navegacion |
-| TanStack Query | 5.91.2 | library, modules | — | Server state, caching, queries y mutations |
-| Zustand | 5.0.12 | global, modules | — | Client state (auth, UI preferences) |
-| Firebase | 12.4.0 | library | — | Autenticacion (Firebase Auth) y persistencia (Cloud Firestore) |
+| Vite | 8.1.5 | raiz | — | Build tool, dev server, bundler |
+| React Router DOM | 7.18.1 | modules, app | — | Enrutamiento SPA, navegacion |
+| TanStack Query | 5.101.4 | library, modules | — | Server state, caching, queries y mutations |
+| Zustand | 5.0.14 | global, modules | — | Client state (auth, UI preferences) |
+| Firebase | 12.16.0 | library | — | Autenticacion (Firebase Auth) y persistencia (Cloud Firestore) |
 | Axios | 1.13.6 | library | — | Cliente HTTP para APIs auxiliares (Cloud Functions, terceros) |
-| React Hook Form | 7.71.2 | modules (q4) | — | Gestion de formularios performante |
-| @hookform/resolvers | 5.2.2 | modules (q4) | — | Bridge RHF ↔ Zod validation |
-| Zod | 4.3.6 | modules/schemas, resources | — | Validacion y fuente de verdad de tipos |
-| PrimeReact | 10.9.7 | global (q1-q3) | — | Libreria de componentes UI |
-| lucide-react | 0.548.0 | global, modules | — | Iconografía oficial (trazo 2px, 22px default) |
-| Tailwind CSS | 4.2.2 | global, modules | — | Estilos utilitarios, layout |
-| @tailwindcss/vite | 4.2.2 | raiz | — | Plugin Tailwind para Vite |
+| React Hook Form | 7.83.0 | modules (q4) | — | Gestion de formularios performante |
+| @hookform/resolvers | 5.5.7 | modules (q4) | — | Bridge RHF ↔ Zod validation |
+| Zod | 4.4.3 | modules/schemas, resources | — | Validacion y fuente de verdad de tipos |
+| PrimeReact | 10.9.8 | global (q1-q3) | — | Libreria de componentes UI |
+| lucide-react | 1.27.0 | global, modules | — | Iconografía oficial (trazo 2px, 22px default) |
+| Tailwind CSS | 4.3.3 | global, modules | — | Estilos utilitarios, layout |
+| @tailwindcss/vite | 4.3.3 | raiz | — | Plugin Tailwind para Vite |
 | Vitest | 4.1.0 | todas (test) | — | Unit e integration tests (integrado en Vite) |
 | @testing-library/react | 16.3.2 | tests de componentes | — | Renderizado y queries orientadas al usuario |
 | @testing-library/user-event | 14.6.1 | tests de componentes | — | Simulacion de interacciones de usuario |
@@ -33,7 +36,7 @@ Versiones exactas de `package.json` del proyecto. Fecha de referencia: 2026-03-2
 | Storybook | 10.3.0 | .storybook/ | — | Desarrollo y documentacion de componentes |
 | @storybook/react-vite | 10.3.0 | .storybook/ | — | Integracion Storybook con Vite |
 | jsdom | 29.0.0 | test | — | DOM virtual para Vitest |
-| @vitejs/plugin-react | 6.0.1 | raiz | — | Plugin React Fast Refresh para Vite |
+| @vitejs/plugin-react | 6.0.4 | raiz | — | Plugin React Fast Refresh para Vite |
 
 ---
 

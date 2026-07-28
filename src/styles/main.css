@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import './theme.css';
+
+/* Registrar las familias del design system como utilities de Tailwind */
+@theme {
+  --font-sans: var(--mc-font-sans);
+  --font-mono: var(--mc-font-mono);
+}

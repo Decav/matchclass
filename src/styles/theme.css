@@ -1,0 +1,105 @@
+/**
+ * MatchClass Design System — tokens base.
+ *
+ * Alcance RC-001: solo los tokens necesarios para la pantalla de verificación.
+ * El design system completo (clases utility, dark mode, overrides de PrimeReact,
+ * heatmap y grilla) es RC-002. Referencia:
+ * .claude/skills/react-architecture/architecture/12-design-system.md
+ */
+
+:root {
+  /* Tipografía */
+  --mc-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mc-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+
+  /* Brand */
+  --mc-brand-primary: #1b2a4a;
+  --mc-brand-secondary: #4f46e5;
+  --mc-brand-accent: #e8a838;
+  --mc-brand-accent-dark: #d97706;
+  --mc-brand-gradient: linear-gradient(135deg, #1b2a4a, #4f46e5);
+  --mc-brand-gradient-accent: linear-gradient(135deg, #e8a838, #d97706);
+
+  /* Superficies */
+  --mc-surface: #fafaf8;
+  --mc-surface-alt: #f9fafb;
+  --mc-card: #ffffff;
+  --mc-card-hover: #f8f9fa;
+
+  /* Texto */
+  --mc-text-primary: #1f2937;
+  --mc-text-secondary: #6b7280;
+  --mc-text-tertiary: #9ca3af;
+  --mc-text-inverse: #ffffff;
+  --mc-text-on-brand: #ffffff;
+  /* Sobre dorado el texto va oscuro: #FFFFFF sobre #E8A838 da 2.1:1, falla AA */
+  --mc-text-on-accent: #1f2937;
+
+  /* Bordes */
+  --mc-border: #e5e7eb;
+  --mc-border-strong: #d1d5db;
+  --mc-border-focus: #4f46e5;
+
+  /* Semánticos */
+  --mc-success: #10b981;
+  --mc-success-bg: #ecfdf5;
+  --mc-danger: #ef4444;
+  --mc-danger-bg: #fef2f2;
+  --mc-warning: #d97706;
+  --mc-warning-bg: #fffbeb;
+
+  /* Radios y sombras */
+  --mc-radius-sm: 6px;
+  --mc-radius: 8px;
+  --mc-radius-lg: 16px;
+  --mc-radius-full: 9999px;
+  --mc-shadow-sm: 0 1px 3px rgb(0 0 0 / 8%);
+  --mc-shadow-md: 0 4px 16px rgb(0 0 0 / 10%);
+
+  /* Gradientes compuestos */
+  --mc-hero-bg: linear-gradient(135deg, #0c1322 0%, #1b2a4a 55%, #16223a 100%);
+}
+
+[data-theme='dark'] {
+  --mc-surface: #0f1729;
+  --mc-surface-alt: #16223a;
+  --mc-card: #1b2a4a;
+  --mc-card-hover: #22355c;
+
+  --mc-text-primary: #f3f4f6;
+  --mc-text-secondary: #9ca3af;
+  --mc-text-tertiary: #6b7280;
+
+  --mc-border: rgb(255 255 255 / 8%);
+  --mc-border-strong: rgb(255 255 255 / 14%);
+  --mc-border-focus: #a5b4fc;
+
+  --mc-success: #34d399;
+  --mc-success-bg: rgb(16 185 129 / 15%);
+  --mc-danger: #f87171;
+  --mc-danger-bg: rgb(239 68 68 / 15%);
+  --mc-warning: #fbbf24;
+  --mc-warning-bg: rgb(217 119 6 / 15%);
+}
+
+body {
+  margin: 0;
+  font-family: var(--mc-font-sans);
+  /* Inter: 'a' y '1' de una sola pierna */
+  font-feature-settings: 'cv11', 'ss01';
+  background: var(--mc-surface);
+  color: var(--mc-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Datos numéricos comparables en vertical: mono + tabular */
+.mc-numeric {
+  font-family: var(--mc-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mc-border-focus);
+  outline-offset: 2px;
+}
