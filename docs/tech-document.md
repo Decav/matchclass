@@ -34,7 +34,7 @@ Ayudante                     Alumno                      Sistema
 | Actor | Descripción | Autenticación |
 |---|---|---|
 | Ayudante | Estudiante avanzado que dicta ayudantías | Sí (email + password) |
-| Alumno | Estudiante que responde su disponibilidad | No (acceso anónimo por código) |
+| Alumno | Estudiante que responde su disponibilidad | Firebase Anonymous Auth (sin registro; entra por código de sala) |
 | Administrador | Profesor/coordinador que supervisa (futuro) | Sí (con rol admin) |
 
 ---
@@ -78,17 +78,27 @@ Representa la respuesta de disponibilidad de un alumno.
 
 | Campo | Tipo | Valores posibles | Descripción |
 |---|---|---|---|
-| `id` | string | Autogenerado | Identificador único |
+| `id` | string (UID) | Firebase Auth UID anónimo | Identificador único. **Es el `uid` anónimo del alumno**, no un id autogenerado |
 | `roomId` | string (ref) | ID de Sala | Sala a la que pertenece esta respuesta |
 | `studentName` | string | Ej: "Diego Pérez" | Nombre visible del alumno |
 | `occupiedBlocks` | number[] | Ej: `[1, 2, 5, 6, 9, 10]` | Bloques 1–20 donde el alumno tiene clase/trabajo |
+| `createdByUid` | string (UID) | Firebase Auth UID anónimo | Autor de la respuesta. Igual a `id`; se persiste también como campo para poder usarlo en las Security Rules sin leer el path |
 | `createdAt` | Timestamp | — | Fecha y hora de creación |
 | `updatedAt` | Timestamp | — | Fecha y hora de última modificación |
+
+**Ubicación en Firestore:** subcolección `rooms/{roomId}/responses/{uid}`. Las respuestas cuelgan de su sala, y el id del documento es el `uid` anónimo del alumno.
+
+Esta decisión resuelve tres cosas de una vez:
+- **Idempotencia:** responder dos veces sobrescribe el mismo documento en vez de duplicarlo. No hace falta buscar antes de escribir.
+- **Edición posterior:** el alumno vuelve, Firebase Auth le devuelve el mismo `uid` desde IndexedDB, y con él recupera su respuesta. Es lo que hace cumplible el criterio "los datos persisten aunque cierre el navegador" del RC-005.
+- **Autorización verificable:** la Security Rule se reduce a `request.auth.uid == responseId`. Un id guardado en `localStorage` daría persistencia parecida pero el servidor no puede verificarlo, así que cualquiera podría editar la respuesta de otro.
 
 **Invariantes:**
 - `occupiedBlocks` debe contener valores entre 1 y 20 (puede estar vacío si el alumno está completamente libre)
 - `studentName` debe tener al menos 2 caracteres
 - `roomId` debe referenciar una Sala existente con status `active`
+- `id` y `createdByUid` deben ser iguales, y coincidir con el `uid` de la sesión que escribe
+- Solo el propio `uid` puede modificar o eliminar su respuesta
 
 ### 2.3 Resultado de Sala (RoomResult)
 
@@ -98,13 +108,13 @@ Representa el resultado del matching para una sala. Se calcula a partir de todas
 |---|---|---|---|
 | `roomId` | string (ref) | ID de Sala | Sala asociada |
 | `totalResponses` | number | Ej: `35` | Cantidad total de alumnos que respondieron |
-| `heatmap` | mapa (ver §2.3.1) | — | Mapa de disponibilidad por bloque |
-| `ranking` | array (ver §2.3.2) | — | Bloques ordenados por disponibilidad descendente |
+| `heatmap` | mapa (ver §2.3.1) | — | Mapa de disponibilidad por slot (100 entradas) |
+| `ranking` | array (ver §2.3.2) | — | Top 3 slots ordenados por disponibilidad descendente |
 | `lastUpdated` | Timestamp | — | Momento del último cálculo |
 
 #### 2.3.1 HeatmapEntry
 
-Cada entrada del heatmap representa la disponibilidad de un bloque específico.
+Cada entrada del heatmap representa la disponibilidad de un slot (día + bloque). El heatmap completo tiene 100 entradas.
 
 | Campo | Tipo | Valores posibles | Descripción |
 |---|---|---|---|
@@ -118,7 +128,7 @@ Cada entrada del heatmap representa la disponibilidad de un bloque específico.
 
 #### 2.3.2 RankingEntry
 
-Cada entrada del ranking es un bloque ordenado por mejor disponibilidad. El ranking contiene los top 3 bloques.
+Cada entrada del ranking es un slot (día + bloque) ordenado por mejor disponibilidad. El ranking contiene los top 3 slots, excluyendo los que estén en `blocked`.
 
 Mismos campos que HeatmapEntry.
 
@@ -182,7 +192,8 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 | RC-005 | Respuesta del alumno | scheduling | RC-004 | Ingreso con código, grilla de bloques, envío |
 | RC-006 | Matching y resultados | results | RC-005 | Algoritmo de matching, heatmap, ranking |
 | RC-007 | Página pública y dashboard | home | RC-003 | Landing, dashboard del ayudante, listado de salas |
-| RC-008 | Modo oscuro y responsive | global | RC-002 | Toggle dark/light, adaptación mobile |
+| RC-008 | Modo oscuro y responsive | global | RC-002 | Toggle dark/light, adaptación mobile (web responsive, no PWA) |
+| RC-009 | Ciclo de vida de cuentas anónimas | infraestructura | RC-005 | Limpieza programada de usuarios anónimos sin actividad |
 
 ### RC-001: Bootstrapping del Proyecto
 
@@ -275,19 +286,31 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 
 **Alcance:**
 - Página de entrada con código corto
+- Sesión anónima de Firebase Auth al ingresar (transparente para el alumno, sin pantalla de login)
 - Visualización de nombre de la sala al ingresar
 - Registro de nombre del alumno (solo nombre, no email)
 - Grilla interactiva de 20 bloques USM
 - Interacción táctil optimizada (tap para marcar/desmarcar)
 - Envío de respuesta y confirmación visual
-- Modificación de respuesta ya enviada
+- Recuperación y modificación de la respuesta ya enviada
 
 **Criterios de aceptación:**
 - Alumno ingresa código y ve la grilla de la sala
 - Alumno marca sus bloques ocupados con un tap
 - Alumno envía respuesta y ve confirmación ("¡Gracias!")
-- Datos persisten aunque el alumno cierre el navegador (puede modificar después)
-- No se requiere registro ni autenticación
+- Al volver a la sala, el alumno ve su respuesta anterior cargada y puede modificarla
+- Datos persisten aunque el alumno cierre el navegador
+- **No se requiere registro:** ni cuenta, ni contraseña, ni email, ni pantalla de login
+
+**Nota sobre la identidad del alumno:** no hay registro, pero sí hay sesión. Al entrar se crea
+una sesión anónima de Firebase Auth que le asigna un `uid` persistente (guardado por el SDK en
+IndexedDB). Ese `uid` es el id de su documento de respuesta, y es lo que permite tanto
+recuperar la respuesta al volver como impedir —vía Security Rules— que edite la de otro.
+El alumno nunca ve nada de esto.
+
+**Dependencia de configuración:** el proveedor *Anonymous* debe estar habilitado en la consola
+de Firebase (Authentication → Sign-in method) en cada proyecto: dev, staging y prod. Viene
+deshabilitado por defecto; si falta, el SDK devuelve `auth/operation-not-allowed`.
 
 ---
 
@@ -297,18 +320,18 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 
 **Alcance:**
 - Algoritmo de matching: cruzar respuestas con restricciones del ayudante
-- Mapa de calor: grilla 5 días × 4 bloques con código de colores
-- Ranking automático: top 3 bloques con mejor disponibilidad
+- Mapa de calor: grilla de 5 días × 20 bloques = 100 slots, con código de colores
+- Ranking automático: top 3 slots (día + bloque) con mejor disponibilidad
 - Categorías de color (verde ≥70%, ámbar 40-69%, naranja 10-39%, rojo <10%, gris bloqueado)
 - Actualización al recibir nueva respuesta
 - Los bloques del ayudante se muestran como "bloqueados" en gris
 
 **Criterios de aceptación:**
-- Heatmap muestra los 20 bloques con su color correspondiente
-- Ranking ordena bloques por disponibilidad descendente
-- Bloques del ayudante aparecen como "bloqueados" en gris
+- Heatmap muestra los 100 slots (20 bloques × 5 días) con su color correspondiente
+- Ranking ordena los slots por disponibilidad descendente e identifica cada uno por día + bloque
+- Bloques del ayudante aparecen como "bloqueados" en gris, con prioridad sobre cualquier porcentaje: un slot bloqueado se pinta gris aunque el 100% de los alumnos esté disponible
 - Si un alumno nuevo responde, los resultados se actualizan
-- Se muestra el porcentaje numérico en cada bloque
+- Se muestra el porcentaje numérico en cada slot — el color por sí solo no comunica el nivel (accesibilidad)
 
 ---
 
@@ -335,6 +358,11 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 
 **Propósito:** Soportar modo oscuro y adaptación a dispositivos móviles.
 
+> **Alcance cerrado: web responsive, no PWA.** MatchClass es una aplicación web responsive
+> mobile-first. **No** incluye `manifest.json`, service worker, instalación en pantalla de
+> inicio ni soporte offline. Cualquier mención a "PWA" en material comercial se refiere al
+> comportamiento mobile-first, no a las capacidades de una Progressive Web App.
+
 **Alcance:**
 - Toggle modo claro/oscuro con persistencia (localStorage)
 - Todos los componentes se adaptan al tema activo
@@ -342,12 +370,44 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 - Sidebar colapsable en mobile
 - Grilla de bloques táctil en mobile
 
+**Fuera de alcance:**
+- Service worker, cacheo offline, sincronización en segundo plano
+- `manifest.json` e instalación como app
+- Notificaciones push
+
 **Criterios de aceptación:**
 - Toggle cambia entre modo claro y oscuro
 - Preferencia persiste al recargar la página
 - En mobile (< 768px), sidebar se oculta y se abre con botón
-- Grilla de bloques es usable con el dedo en mobile
+- Grilla de bloques es usable con el dedo en mobile: área táctil mínima de 44×44px por slot (WCAG 2.2 — 2.5.8 Target Size)
 - Todos los textos mantienen contraste WCAG AA en ambos modos
+- La aplicación requiere conexión a internet para funcionar; no hay modo offline
+
+---
+
+### RC-009: Ciclo de Vida de las Cuentas Anónimas
+
+**Propósito:** Evitar el crecimiento indefinido de usuarios anónimos en Firebase Auth.
+
+**Contexto:** cada alumno que responde genera una cuenta anónima permanente. Firebase no las
+elimina por su cuenta. Una asignatura con 40 alumnos deja 40 cuentas; un semestre con 30 salas
+activas deja del orden de 1.200. Sin una política de limpieza, el proyecto acumula cuentas
+muertas de forma indefinida.
+
+**Alcance:**
+- Cloud Function programada (Cloud Scheduler) que elimina cuentas anónimas sin actividad reciente
+- Definir la ventana de retención (sugerido: 90 días desde `lastRefreshTime`)
+- No eliminar cuentas cuya sala asociada siga en estado `active`
+- Registrar la cantidad de cuentas eliminadas por ejecución
+
+**Criterios de aceptación:**
+- La función corre de forma programada y elimina solo cuentas anónimas
+- Una cuenta anónima con respuesta en una sala `active` nunca se elimina
+- Las cuentas con email (ayudantes) nunca se ven afectadas
+- Al eliminar una cuenta, su respuesta asociada queda huérfana o se borra en cascada — definir cuál al implementar
+
+**Nota:** este RC no bloquea el lanzamiento. Puede diferirse hasta después del primer semestre
+en producción, pero conviene tenerlo decidido antes de que el volumen lo vuelva urgente.
 
 ---
 
@@ -356,13 +416,16 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 ```
 RC-001 (Bootstrapping)
   ├── RC-002 (Design System)
-  │     └── RC-008 (Modo oscuro)
-  └── RC-003 (Auth)
+  │     └── RC-008 (Modo oscuro y responsive)
+  └── RC-003 (Auth ayudante)
         ├── RC-004 (Salas)
-        │     └── RC-005 (Respuesta)
-        │           └── RC-006 (Resultados)
+        │     └── RC-005 (Respuesta del alumno)
+        │           ├── RC-006 (Resultados)
+        │           └── RC-009 (Limpieza de cuentas anónimas)
         └── RC-007 (Landing/Dashboard)
 ```
+
+RC-009 no bloquea a ningún otro RC: puede implementarse en cualquier momento posterior a RC-005.
 
 ---
 
@@ -378,6 +441,8 @@ RC-001 (Bootstrapping)
 | **Ranking** | Lista ordenada de bloques recomendados según disponibilidad |
 | **Matching** | Algoritmo que cruza restricciones + respuestas |
 | **Código corto** | Identificador único de 3-6 caracteres para compartir |
+| **Slot** | Combinación de día + bloque (ej. `Martes-Bloque9-10`). El heatmap opera sobre 100 slots |
+| **Sesión anónima** | Sesión de Firebase Auth sin registro. Da al alumno un `uid` verificable y persistente |
 | **Módulo USM** | Unidad mínima de 45 min de la matriz horaria USM |
 | **RC** | Requirements Charter — definición de feature a implementar |
 
