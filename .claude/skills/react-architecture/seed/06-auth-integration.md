@@ -64,11 +64,25 @@ Se llama una sola vez en `main.tsx`, antes de renderizar.
 ```typescript
 // src/resources/entities/user.entity.ts
 export interface User {
-  id: string;            // uid de Firebase
+  id: string;              // uid de Firebase
   name: string;
   email: string;
   photoUrl: string | null;
-  roles: string[];       // leídos de custom claims o del documento de Firestore
+  roles: string[];         // leídos de custom claims o del documento de Firestore
+  isAnonymous: boolean;    // true = alumno que entró por código, sin cuenta
+}
+```
+
+```typescript
+// src/resources/entities/response.entity.ts
+export interface Response {
+  id: string;                // = uid anónimo del alumno (ver "Los dos modos de acceso")
+  roomId: string;
+  studentName: string;
+  occupiedBlocks: number[];  // bloques 1–20 donde el alumno tiene compromiso
+  createdByUid: string;      // uid anónimo — habilita la Security Rule de edición
+  createdAt: Date | null;
+  updatedAt: Date | null;
 }
 ```
 
@@ -83,6 +97,8 @@ export const AuthStatus = {
 export type AuthStatus = typeof AuthStatus[keyof typeof AuthStatus];
 ```
 
+Las entidades completas del dominio (`Room`, `Response`, `RoomResult`, `HeatmapEntry`, `ScheduleBlock`, `User`) están especificadas en `docs/tech-document.md` §2. `resources` es su única fuente de verdad en código: ningún módulo redefine estas formas.
+
 ---
 
 ## Capa 3 — Repository de auth (`library`)
@@ -94,6 +110,7 @@ Encapsula el SDK y **traduce** `FirebaseUser` → `User`. Es el único archivo q
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInAnonymously,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -115,6 +132,7 @@ async function toDomainUser(fbUser: FirebaseUser): Promise<User> {
     email: fbUser.email ?? '',
     photoUrl: fbUser.photoURL,
     roles: Array.isArray(claimRoles) ? claimRoles.map(String) : [],
+    isAnonymous: fbUser.isAnonymous,
   };
 }
 
@@ -127,6 +145,17 @@ export const AuthRepository = {
   loginWithGoogle: async (): Promise<User> => {
     const credential = await signInWithPopup(auth, googleProvider);
     return toDomainUser(credential.user);
+  },
+
+  /**
+   * Acceso del alumno: sin registro ni contraseña, pero con un uid real.
+   * Idempotente — si ya hay sesión (anónima o no), la reutiliza en vez de
+   * crear un usuario nuevo en cada visita.
+   */
+  ensureAnonymousSession: async (): Promise<string> => {
+    if (auth.currentUser) return auth.currentUser.uid;
+    const credential = await signInAnonymously(auth);
+    return credential.user.uid;
   },
 
   logout: (): Promise<void> => signOut(auth),
@@ -152,6 +181,49 @@ export const AuthRepository = {
 ```
 
 `tokenResult.claims.roles` llega tipado como `unknown` en el SDK: se valida con `Array.isArray` antes de usarlo. No castear con `as string[]`.
+
+---
+
+## Los dos modos de acceso
+
+MatchClass tiene dos tipos de usuario con necesidades de identidad distintas (ver `docs/tech-document.md` §1):
+
+| Actor | Metodo | uid | Puede |
+|---|---|---|---|
+| Ayudante | Email + password | Persistente, con cuenta | Crear salas, ver resultados |
+| Alumno | **Anonymous Auth** por codigo de sala | Persistente, sin cuenta | Responder y editar *su propia* respuesta |
+
+El alumno no se registra, pero **si tiene un `uid`**. Esa es la pieza que hace posible el criterio de aceptacion del RC-005 ("los datos persisten aunque cierre el navegador"): Firebase Auth guarda la sesion anonima en IndexedDB, asi que al volver el alumno recupera el mismo `uid` y con el, su respuesta.
+
+Un id generado a mano en `localStorage` daria persistencia parecida, pero **no serviria para las Security Rules**: el servidor no puede verificarlo, y cualquiera podria editar la respuesta de otro. El `uid` anonimo si es verificable por Firestore via `request.auth.uid`.
+
+```tsx
+// src/modules/scheduling/core/hooks/use-anonymous-session.ts
+import { useEffect, useState } from 'react';
+import { AuthRepository } from '@library/repositories/auth.repository';
+
+/** Garantiza una sesion anonima antes de que el alumno pueda responder. */
+export function useAnonymousSession() {
+  const [uid, setUid] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    AuthRepository.ensureAnonymousSession()
+      .then((value) => { if (!cancelled) setUid(value); })
+      .catch((err) => { if (!cancelled) setError(err); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { uid, error, isReady: uid !== null };
+}
+```
+
+El flag `cancelled` evita el `setState` sobre un componente desmontado si el alumno navega antes de que resuelva la promesa.
+
+**Habilitar el proveedor:** Anonymous Auth viene deshabilitado por defecto. Hay que activarlo en la consola de Firebase (Authentication → Sign-in method → Anonymous) en **cada** proyecto: dev, staging y prod. Si falta, el SDK devuelve `auth/operation-not-allowed`.
+
+**Sobre las cuentas anonimas:** Firebase no las borra solo. Una sala con 40 alumnos genera 40 usuarios anonimos permanentes. Conviene una Cloud Function programada que elimine las cuentas anonimas sin actividad reciente, o asumir el crecimiento y monitorearlo.
 
 ---
 
@@ -330,74 +402,95 @@ export function Q5ProtectedRoute({
 
 Mismo patrón: el SDK vive en `library`, los tipos en `resources`, los hooks en `modules`.
 
+Las entidades reales del dominio están en `docs/tech-document.md` §2. Colecciones de Firestore:
+
+| Coleccion | Entidad | Quien escribe |
+|---|---|---|
+| `rooms` | `Room` | Ayudante (dueño de la sala) |
+| `rooms/{roomId}/responses` | `Response` | Alumno anonimo |
+| `roomResults` | `RoomResult` | Recalculo del matching |
+| `users` | `User` | El propio usuario al registrarse |
+
+`ScheduleBlock` (la matriz USM de 20 bloques) **no persiste**: vive como constante en `src/resources/constants/usm-schedule.ts`.
+
 ```typescript
-// src/library/repositories/schedule.repository.ts
+// src/library/repositories/response.repository.ts
 import {
-  collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, type QueryDocumentSnapshot,
+  collection, doc, getDocs, getDoc, setDoc, deleteDoc, onSnapshot,
+  serverTimestamp, query, orderBy, type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@library/firebase/firebase-app';
-import type { ScheduleBlock } from '@resources/entities/schedule-block.entity';
+import type { Response } from '@resources/entities/response.entity';
 
-const COLLECTION = 'scheduleBlocks';
+// Subcoleccion: las respuestas viven bajo su sala.
+// Esto simplifica las Security Rules y evita un where('roomId', ...) en cada lectura.
+const responsesRef = (roomId: string) => collection(db, 'rooms', roomId, 'responses');
 
-function toScheduleBlock(snapshot: QueryDocumentSnapshot): ScheduleBlock {
+// Mapper obligatorio: snapshot.data() es DocumentData (any en la practica)
+function toResponse(snapshot: QueryDocumentSnapshot): Response {
   const data = snapshot.data();
+  const blocks = Array.isArray(data.occupiedBlocks) ? data.occupiedBlocks : [];
   return {
     id: snapshot.id,
-    teacherId: String(data.teacherId ?? ''),
-    day: Number(data.day ?? 0),
-    startTime: String(data.startTime ?? ''),
-    endTime: String(data.endTime ?? ''),
-    availability: Number(data.availability ?? 0),
+    roomId: String(data.roomId ?? ''),
+    studentName: String(data.studentName ?? ''),
+    // Se filtra al rango valido 1-20 en el borde del dominio, no en el componente
+    occupiedBlocks: blocks.map(Number).filter((b) => Number.isInteger(b) && b >= 1 && b <= 20),
+    createdByUid: String(data.createdByUid ?? ''),
+    createdAt: data.createdAt?.toDate?.() ?? null,
+    updatedAt: data.updatedAt?.toDate?.() ?? null,
   };
 }
 
-export const ScheduleRepository = {
-  listByTeacher: async (teacherId: string): Promise<ScheduleBlock[]> => {
-    const q = query(
-      collection(db, COLLECTION),
-      where('teacherId', '==', teacherId),
-      orderBy('day'),
-      orderBy('startTime'),
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(toScheduleBlock);
+export const ResponseRepository = {
+  listByRoom: async (roomId: string): Promise<Response[]> => {
+    const snapshot = await getDocs(query(responsesRef(roomId), orderBy('createdAt')));
+    return snapshot.docs.map(toResponse);
   },
 
-  getById: async (id: string): Promise<ScheduleBlock | null> => {
-    const snapshot = await getDoc(doc(db, COLLECTION, id));
+  getMine: async (roomId: string, uid: string): Promise<Response | null> => {
+    const snapshot = await getDoc(doc(responsesRef(roomId), uid));
     if (!snapshot.exists()) return null;
-    return toScheduleBlock(snapshot as QueryDocumentSnapshot);
+    return toResponse(snapshot as QueryDocumentSnapshot);
   },
 
-  create: async (block: Omit<ScheduleBlock, 'id'>): Promise<string> => {
-    const ref = await addDoc(collection(db, COLLECTION), block);
-    return ref.id;
-  },
+  /**
+   * El id del documento ES el uid anonimo del alumno. Con eso:
+   * - responder dos veces sobrescribe en vez de duplicar
+   * - la Security Rule se reduce a `request.auth.uid == responseId`
+   */
+  submit: (roomId: string, uid: string, data: Pick<Response, 'studentName' | 'occupiedBlocks'>): Promise<void> =>
+    setDoc(
+      doc(responsesRef(roomId), uid),
+      { ...data, roomId, createdByUid: uid, updatedAt: serverTimestamp(), createdAt: serverTimestamp() },
+      { merge: true },   // merge: preserva createdAt en las ediciones posteriores
+    ),
 
-  update: (id: string, patch: Partial<Omit<ScheduleBlock, 'id'>>): Promise<void> =>
-    updateDoc(doc(db, COLLECTION, id), patch),
+  remove: (roomId: string, uid: string): Promise<void> =>
+    deleteDoc(doc(responsesRef(roomId), uid)),
 
-  remove: (id: string): Promise<void> => deleteDoc(doc(db, COLLECTION, id)),
+  subscribeByRoom: (roomId: string, callback: (responses: Response[]) => void): (() => void) =>
+    onSnapshot(query(responsesRef(roomId), orderBy('createdAt')), (snapshot) => {
+      callback(snapshot.docs.map(toResponse));
+    }),
 };
 ```
 
-`snapshot.data()` devuelve `DocumentData` (`any` en la práctica). El mapper `toScheduleBlock` es obligatorio: es donde el dato no tipado de Firestore entra al dominio tipado. Sin él, el `any` se propaga por toda la app.
+`snapshot.data()` devuelve `DocumentData` (`any` en la práctica). El mapper es obligatorio: es donde el dato no tipado de Firestore entra al dominio tipado. Sin él, el `any` se propaga por toda la app.
 
 ### Query hook sobre Firestore
 
 ```typescript
-// src/modules/schedule/core/hooks/use-schedule-query.ts
+// src/modules/results/core/hooks/use-room-responses-query.ts
 import { useQuery } from '@tanstack/react-query';
-import { ScheduleRepository } from '@library/repositories/schedule.repository';
+import { ResponseRepository } from '@library/repositories/response.repository';
 import { queryKeys } from '@library/query/query-keys';
 
-export function useScheduleQuery(teacherId: string) {
+export function useRoomResponsesQuery(roomId: string) {
   return useQuery({
-    queryKey: queryKeys.schedule.byTeacher(teacherId),
-    queryFn: () => ScheduleRepository.listByTeacher(teacherId),
-    enabled: Boolean(teacherId),
+    queryKey: queryKeys.responses.byRoom(roomId),
+    queryFn: () => ResponseRepository.listByRoom(roomId),
+    enabled: Boolean(roomId),
     staleTime: 30_000,
   });
 }
@@ -406,39 +499,137 @@ export function useScheduleQuery(teacherId: string) {
 ```typescript
 // src/library/query/query-keys.ts
 export const queryKeys = {
-  auth:     { current: ['auth', 'current'] as const },
-  schedule: {
-    all: ['schedule'] as const,
-    byTeacher: (teacherId: string) => ['schedule', 'teacher', teacherId] as const,
+  auth:  { current: ['auth', 'current'] as const },
+  rooms: {
+    all: ['rooms'] as const,
+    byOwner: (uid: string) => ['rooms', 'owner', uid] as const,
+    byCode: (code: string) => ['rooms', 'code', code] as const,
+    detail: (roomId: string) => ['rooms', 'detail', roomId] as const,
+  },
+  responses: {
+    byRoom: (roomId: string) => ['responses', 'room', roomId] as const,
+    mine: (roomId: string, uid: string) => ['responses', 'room', roomId, 'mine', uid] as const,
+  },
+  results: {
+    byRoom: (roomId: string) => ['results', 'room', roomId] as const,
   },
 } as const;
 ```
 
 ### Suscripciones en tiempo real
 
-`onSnapshot` no encaja en `useQuery` (que es request/response). Para datos vivos —la grilla compartida, por ejemplo— se usa un hook dedicado que sincroniza el cache de TanStack Query:
+`onSnapshot` no encaja en `useQuery` (que es request/response). El heatmap del ayudante debe reaccionar a cada respuesta nueva, así que se usa un hook dedicado que sincroniza el cache de TanStack Query:
 
 ```typescript
-// src/modules/schedule/core/hooks/use-schedule-subscription.ts
+// src/modules/results/core/hooks/use-room-responses-subscription.ts
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ScheduleRepository } from '@library/repositories/schedule.repository';
+import { ResponseRepository } from '@library/repositories/response.repository';
 import { queryKeys } from '@library/query/query-keys';
 
-export function useScheduleSubscription(teacherId: string) {
+export function useRoomResponsesSubscription(roomId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!teacherId) return;
-    const unsubscribe = ScheduleRepository.subscribeByTeacher(teacherId, (blocks) => {
-      queryClient.setQueryData(queryKeys.schedule.byTeacher(teacherId), blocks);
+    if (!roomId) return;
+    const unsubscribe = ResponseRepository.subscribeByRoom(roomId, (responses) => {
+      queryClient.setQueryData(queryKeys.responses.byRoom(roomId), responses);
     });
     return unsubscribe;
-  }, [teacherId, queryClient]);
+  }, [roomId, queryClient]);
 }
 ```
 
-El `return unsubscribe` no es opcional: sin él cada montaje deja un listener abierto contra Firestore, y eso se paga en cuota de lecturas.
+El `return unsubscribe` no es opcional: sin él cada montaje deja un listener abierto contra Firestore, y eso se paga en cuota de lecturas — más aún en una sala con 40 alumnos respondiendo en paralelo.
+
+### Buscar una sala por código corto
+
+El alumno entra con un código (`"EDS101"`), no con el id del documento. El código es único, así que la consulta devuelve como máximo un resultado:
+
+```typescript
+// src/library/repositories/room.repository.ts
+export const RoomRepository = {
+  findByCode: async (code: string): Promise<Room | null> => {
+    const snapshot = await getDocs(
+      query(collection(db, 'rooms'), where('code', '==', code.toUpperCase()), limit(1)),
+    );
+    const first = snapshot.docs[0];
+    return first ? toRoom(first) : null;
+  },
+};
+```
+
+Normalizar el código a mayúsculas **en el repositorio y al escribir**, no en el componente: si un alumno tipea `eds101` y la sala se guardó como `EDS101`, la igualdad estricta de Firestore no encuentra nada. Firestore no tiene búsqueda case-insensitive.
+
+---
+
+## Security Rules — la autorización real
+
+Todo lo anterior es UX. **La autorización vive en las Firestore Security Rules**: un `requiredRoles` en el router no impide que alguien abra la consola del navegador y consulte la colección directamente.
+
+Estas reglas son el contrato que el modelo de datos debe respetar; si una consulta del frontend no encaja aquí, es la consulta la que está mal.
+
+```javascript
+// firestore.rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn()      { return request.auth != null; }
+    function isOwner(uid)      { return isSignedIn() && request.auth.uid == uid; }
+    function isFullAccount()   { return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+
+    // Perfil del ayudante — solo el propio usuario, y nunca una cuenta anónima
+    match /users/{uid} {
+      allow read:        if isOwner(uid);
+      allow create:      if isOwner(uid) && isFullAccount();
+      allow update:      if isOwner(uid) && request.resource.data.role == resource.data.role;  // no auto-promoverse
+      allow delete:      if false;
+    }
+
+    match /rooms/{roomId} {
+      // Lectura pública: el alumno necesita resolver el código antes de autenticarse
+      allow read:   if true;
+      allow create: if isFullAccount() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isFullAccount() && resource.data.createdBy == request.auth.uid;
+
+      match /responses/{responseId} {
+        // El ayudante dueño ve todas; el alumno solo la suya
+        allow read: if isOwner(responseId)
+                    || (isFullAccount()
+                        && get(/databases/$(database)/documents/rooms/$(roomId)).data.createdBy == request.auth.uid);
+
+        // El id del documento DEBE ser el uid: así un alumno no puede escribir por otro
+        allow create, update: if isOwner(responseId)
+                              && get(/databases/$(database)/documents/rooms/$(roomId)).data.status == 'active';
+
+        allow delete: if isOwner(responseId);
+      }
+    }
+
+    // Resultados: los calcula el servidor, el cliente solo lee
+    match /roomResults/{roomId} {
+      allow read:  if true;
+      allow write: if false;
+    }
+  }
+}
+```
+
+Cuatro decisiones que conviene entender antes de tocarlas:
+
+1. **`rooms` es de lectura pública.** El alumno tiene que resolver el código corto *antes* de existir como usuario. Consecuencia asumida: cualquiera que adivine un código ve el nombre de la sala. No poner datos sensibles en `Room`.
+2. **`isFullAccount()` distingue anónimo de registrado.** Sin ese chequeo, un alumno anónimo podría crear salas: `isSignedIn()` es verdadero también para él.
+3. **El id del documento de respuesta es el uid.** Es lo que convierte "solo puedes editar tu respuesta" en una regla de una línea, sin leer el documento previo.
+4. **`roomResults` es de solo lectura para el cliente.** Si el frontend pudiera escribir el ranking, cualquier alumno podría fabricar el resultado. El recálculo va en una Cloud Function con trigger `onWrite` sobre `responses`.
+
+**Las reglas se testean.** El emulador permite correrlas como tests, y son la única capa que realmente protege los datos:
+
+```bash
+npm install -D @firebase/rules-unit-testing
+firebase emulators:exec --only firestore "npx vitest run firestore.rules.test.ts"
+```
 
 ---
 

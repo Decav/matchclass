@@ -193,31 +193,44 @@ El repository es el unico archivo que conoce `FirebaseUser`. Traduce al `User` d
 ### Repository de Firestore
 
 ```ts
-// src/library/repositories/schedule.repository.ts
-import { collection, getDocs, query, where, type QueryDocumentSnapshot } from 'firebase/firestore';
+// src/library/repositories/response.repository.ts
+import { collection, doc, getDocs, setDoc, serverTimestamp, orderBy, query,
+         type QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@library/firebase/firebase-app';
-import type { ScheduleBlock } from '@resources/entities/schedule-block.entity';
+import type { Response } from '@resources/entities/response.entity';
+
+// Subcoleccion: las respuestas viven bajo su sala
+const responsesRef = (roomId: string) => collection(db, 'rooms', roomId, 'responses');
 
 // Mapper obligatorio: snapshot.data() es DocumentData (any en la practica)
-function toScheduleBlock(snap: QueryDocumentSnapshot): ScheduleBlock {
+function toResponse(snap: QueryDocumentSnapshot): Response {
   const data = snap.data();
+  const blocks = Array.isArray(data.occupiedBlocks) ? data.occupiedBlocks : [];
   return {
     id: snap.id,
-    teacherId: String(data.teacherId ?? ''),
-    day: Number(data.day ?? 0),
-    startTime: String(data.startTime ?? ''),
-    endTime: String(data.endTime ?? ''),
-    availability: Number(data.availability ?? 0),
+    roomId: String(data.roomId ?? ''),
+    studentName: String(data.studentName ?? ''),
+    occupiedBlocks: blocks.map(Number).filter((b) => Number.isInteger(b) && b >= 1 && b <= 20),
+    createdByUid: String(data.createdByUid ?? ''),
+    createdAt: data.createdAt?.toDate?.() ?? null,
+    updatedAt: data.updatedAt?.toDate?.() ?? null,
   };
 }
 
-export const ScheduleRepository = {
-  listByTeacher: async (teacherId: string): Promise<ScheduleBlock[]> => {
-    const snapshot = await getDocs(
-      query(collection(db, 'scheduleBlocks'), where('teacherId', '==', teacherId)),
-    );
-    return snapshot.docs.map(toScheduleBlock);
+export const ResponseRepository = {
+  listByRoom: async (roomId: string): Promise<Response[]> => {
+    const snapshot = await getDocs(query(responsesRef(roomId), orderBy('createdAt')));
+    return snapshot.docs.map(toResponse);
   },
+
+  // El id del documento ES el uid anonimo: responder dos veces sobrescribe,
+  // y la Security Rule se reduce a `request.auth.uid == responseId`.
+  submit: (roomId: string, uid: string, data: Pick<Response, 'studentName' | 'occupiedBlocks'>) =>
+    setDoc(
+      doc(responsesRef(roomId), uid),
+      { ...data, roomId, createdByUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() },
+      { merge: true },
+    ),
 };
 ```
 
@@ -226,19 +239,21 @@ export const ScheduleRepository = {
 Solo cuando hay logica de negocio real (combinar repositorios, aplicar reglas). Un service que solo delega viola YAGNI — los hooks llaman directo al repository.
 
 ```ts
-// src/library/services/schedule.service.ts
-import { ScheduleRepository } from '@library/repositories/schedule.repository';
-import { TeacherRepository } from '@library/repositories/teacher.repository';
-import type { ScheduleBlock } from '@resources/entities/schedule-block.entity';
+// src/library/services/matching.service.ts
+import { RoomRepository } from '@library/repositories/room.repository';
+import { ResponseRepository } from '@library/repositories/response.repository';
+import { buildHeatmap } from '@modules/results/core/utils/build-heatmap';
+import type { RoomResult } from '@resources/entities/room-result.entity';
 
-export const ScheduleService = {
-  // Logica real: cruza dos colecciones y descarta bloques de docentes inactivos
-  listActiveByTeacher: async (teacherId: string): Promise<ScheduleBlock[]> => {
-    const [blocks, teacher] = await Promise.all([
-      ScheduleRepository.listByTeacher(teacherId),
-      TeacherRepository.getById(teacherId),
+export const MatchingService = {
+  // Logica real: cruza dos colecciones y aplica las hard constraints del ayudante
+  computeResult: async (roomId: string): Promise<RoomResult> => {
+    const [room, responses] = await Promise.all([
+      RoomRepository.getById(roomId),
+      ResponseRepository.listByRoom(roomId),
     ]);
-    return teacher?.isActive ? blocks : [];
+    if (!room) throw new Error(`Room ${roomId} no existe`);
+    return buildHeatmap(room.helperBlockedSlots, responses);
   },
 };
 ```
@@ -246,16 +261,16 @@ export const ScheduleService = {
 ### Query Hook
 
 ```ts
-// src/modules/schedule/core/hooks/use-schedule-query.ts
+// src/modules/results/core/hooks/use-room-responses-query.ts
 import { useQuery } from '@tanstack/react-query';
-import { ScheduleRepository } from '@library/repositories/schedule.repository';
+import { ResponseRepository } from '@library/repositories/response.repository';
 import { queryKeys } from '@library/query/query-keys';
 
-export function useScheduleQuery(teacherId: string) {
+export function useRoomResponsesQuery(roomId: string) {
   return useQuery({
-    queryKey: queryKeys.schedule.byTeacher(teacherId),  // registry central, nunca string literal
-    queryFn: () => ScheduleRepository.listByTeacher(teacherId),
-    enabled: Boolean(teacherId),
+    queryKey: queryKeys.responses.byRoom(roomId),  // registry central, nunca string literal
+    queryFn: () => ResponseRepository.listByRoom(roomId),
+    enabled: Boolean(roomId),
     staleTime: 30_000,
   });
 }
@@ -266,16 +281,16 @@ export function useScheduleQuery(teacherId: string) {
 `onSnapshot` no encaja en `useQuery` (request/response). Se usa un hook dedicado que sincroniza el cache:
 
 ```ts
-// src/modules/schedule/core/hooks/use-schedule-subscription.ts
-export function useScheduleSubscription(teacherId: string) {
+// src/modules/results/core/hooks/use-room-responses-subscription.ts
+export function useRoomResponsesSubscription(roomId: string) {
   const queryClient = useQueryClient();
   useEffect(() => {
-    if (!teacherId) return;
-    const unsubscribe = ScheduleRepository.subscribeByTeacher(teacherId, (blocks) => {
-      queryClient.setQueryData(queryKeys.schedule.byTeacher(teacherId), blocks);
+    if (!roomId) return;
+    const unsubscribe = ResponseRepository.subscribeByRoom(roomId, (responses) => {
+      queryClient.setQueryData(queryKeys.responses.byRoom(roomId), responses);
     });
     return unsubscribe;   // sin esto, cada montaje deja un listener abierto
-  }, [teacherId, queryClient]);
+  }, [roomId, queryClient]);
 }
 ```
 
@@ -571,15 +586,15 @@ Si TanStack Query hace refetch automático (staleTime, window focus), el side ef
 ```typescript
 // ❌ El side effect se ejecuta en cada refetch automático
 queryFn: async () => {
-  const blocks = await ScheduleRepository.listByTeacher(teacherId);
-  setSelectedBlock(blocks[0]);   // ← no va aquí
-  return blocks;
+  const responses = await ResponseRepository.listByRoom(roomId);
+  setSelectedBlock(responses[0]);   // ← no va aquí
+  return responses;
 }
 
 // ✅ Separar fetch de sincronización de estado
 const query = useQuery({
-  queryKey: queryKeys.schedule.byTeacher(teacherId),
-  queryFn: () => ScheduleRepository.listByTeacher(teacherId),
+  queryKey: queryKeys.responses.byRoom(roomId),
+  queryFn: () => ResponseRepository.listByRoom(roomId),
 });
 useEffect(() => {
   if (query.data) setSelectedBlock(query.data[0]);
@@ -599,7 +614,7 @@ El SDK vive exclusivamente en `src/library/firebase/` y `src/library/repositorie
 import { getDocs, collection } from 'firebase/firestore';
 
 // ✅ componente → hook → repository → SDK
-const { data } = useScheduleQuery(teacherId);
+const { data } = useRoomResponsesQuery(roomId);
 ```
 
 **`snapshot.data()` sin mapper — PROHIBIDO**
@@ -608,12 +623,12 @@ const { data } = useScheduleQuery(teacherId);
 
 ```typescript
 // ❌ El tipado miente
-const blocks = snapshot.docs.map((d) => d.data() as ScheduleBlock);
+const responses = snapshot.docs.map((d) => d.data() as Response);
 
 // ✅ Mapper que valida campo a campo
-function toScheduleBlock(snap: QueryDocumentSnapshot): ScheduleBlock {
+function toResponse(snap: QueryDocumentSnapshot): Response {
   const data = snap.data();
-  return { id: snap.id, teacherId: String(data.teacherId ?? ''), /* ... */ };
+  return { id: snap.id, studentName: String(data.studentName ?? ''), /* ... */ };
 }
 ```
 
@@ -624,9 +639,9 @@ Cada montaje sin desuscripción deja un listener abierto: en StrictMode se dupli
 ```typescript
 // ✅ Siempre retornar el unsubscribe desde el efecto
 useEffect(() => {
-  const unsubscribe = ScheduleRepository.subscribeByTeacher(id, onData);
+  const unsubscribe = ResponseRepository.subscribeByRoom(roomId, onData);
   return unsubscribe;
-}, [id, onData]);
+}, [roomId, onData]);
 ```
 
 **Redirigir a `/login` durante el estado `Loading` — BUG**
@@ -765,8 +780,8 @@ Un service que solo delega al repository confunde al equipo: no queda claro cuá
 
 ```typescript
 // ❌ Zero lógica de negocio
-export const ScheduleService = {
-  listByTeacher: (id: string) => ScheduleRepository.listByTeacher(id),
+export const ResponseService = {
+  listByRoom: (roomId: string) => ResponseRepository.listByRoom(roomId),
 };
 
 // ✅ Opción A: Service con lógica real (combina repos, aplica reglas de negocio)

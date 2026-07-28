@@ -94,9 +94,10 @@ src/
 │   │   └── query-keys.ts       # Claves de query centralizadas
 │   ├── repositories/
 │   │   ├── auth.repository.ts  # Firebase Auth + mapper FirebaseUser → User
-│   │   └── schedule.repository.ts # Firestore + mapper toScheduleBlock
+│   │   ├── room.repository.ts  # Firestore: salas (rooms)
+│   │   └── response.repository.ts # Firestore: respuestas (subcoleccion)
 │   ├── services/
-│   │   └── schedule.service.ts # Solo cuando hay logica de negocio real
+│   │   └── matching.service.ts # Solo cuando hay logica de negocio real
 │   ├── mocks/
 │   │   ├── browser.ts          # MSW para navegador (dev)
 │   │   ├── server.ts           # MSW para Node (tests)

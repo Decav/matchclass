@@ -2673,13 +2673,16 @@ El componente central del producto. Esta sección fija las reglas visuales; la l
 
 1. **Los tokens del heatmap no son tokens semánticos.** `--mc-heatmap-medium` es ámbar porque representa 40–69% de disponibilidad, no porque sea una advertencia. Nunca intercambiar `--mc-heatmap-*` con `--mc-warning` / `--mc-success`.
 2. **El color nunca es el único canal.** Cada celda lleva el dato como texto (en `--mc-font-mono`) o un `aria-label` explícito. Con deuteranopía, `high` y `medium` son indistinguibles.
-3. **Los estados de bloque y los del heatmap son ejes distintos.** `--mc-grid-*` describe si el bloque está libre / ocupado / fuera de rango; `--mc-heatmap-*` describe cuánta disponibilidad hay. Un bloque puede estar `occupied` y tener heatmap `low`.
+3. **Los estados de bloque y los del heatmap son ejes distintos.** `--mc-grid-*` describe si el bloque está libre / ocupado / fuera de rango en la grilla de respuesta del alumno; `--mc-heatmap-*` describe cuánta disponibilidad agregada hay en la vista de resultados del ayudante. Son dos pantallas distintas y no comparten tokens.
 4. **Las horas y los porcentajes siempre en mono con `tabular-nums`.** Sin eso las columnas no se alinean y la grilla se lee mal.
+5. **`blocked` gana a cualquier porcentaje.** Si el bloque está en `helperBlockedSlots`, se pinta gris aunque el 100% de los alumnos esté disponible: es una *hard constraint*, no una preferencia.
 
 ### 17.2 Escala de intensidad
 
+Corresponde al campo `status` de `HeatmapEntry` (`docs/tech-document.md` §2.3.1). Los cortes son los de la paleta oficial: 70 / 40 / 10.
+
 ```ts
-// src/modules/schedule/core/utils/heatmap-level.ts
+// src/modules/results/core/utils/heatmap-level.ts
 export const HeatmapLevel = {
   High:     'high',
   Medium:   'medium',
@@ -2693,48 +2696,67 @@ const LEVEL_LABEL: Record<HeatmapLevel, string> = {
   high:     'Alta disponibilidad',
   medium:   'Disponibilidad media',
   low:      'Baja disponibilidad',
-  conflict: 'Conflicto de horario',
-  blocked:  'Bloqueado por administración',
+  conflict: 'Conflicto mayoritario de horarios',
+  blocked:  'Bloqueado por el ayudante',
 };
 
-export function resolveHeatmapLevel(availability: number): HeatmapLevel {
-  if (availability >= 70) return HeatmapLevel.High;
-  if (availability >= 40) return HeatmapLevel.Medium;
-  if (availability >= 10) return HeatmapLevel.Low;
-  return HeatmapLevel.Low;
+/**
+ * Deriva el nivel a partir del porcentaje de alumnos disponibles.
+ * `blocked` NO se deriva: lo impone `helperBlockedSlots` y se resuelve antes
+ * de llamar a esta función.
+ */
+export function resolveHeatmapLevel(percentage: number): HeatmapLevel {
+  if (percentage >= 70) return HeatmapLevel.High;
+  if (percentage >= 40) return HeatmapLevel.Medium;
+  if (percentage >= 10) return HeatmapLevel.Low;
+  return HeatmapLevel.Conflict;   // <10%: prácticamente nadie puede
 }
 
-export function heatmapLabel(level: HeatmapLevel, availability: number): string {
-  return `${LEVEL_LABEL[level]} — ${availability}%`;
+export function heatmapLabel(level: HeatmapLevel, available: number, total: number, percentage: number): string {
+  if (level === HeatmapLevel.Blocked) return LEVEL_LABEL.blocked;
+  return `${LEVEL_LABEL[level]} — ${available} de ${total} alumnos (${Math.round(percentage)}%)`;
 }
 ```
 
-`resolveHeatmapLevel` no devuelve `conflict` ni `blocked`: esos dos no se derivan del porcentaje, los determina el estado del bloque y se pasan explícitamente.
+El orden importa en el consumidor: primero se chequea `blocked` (hard constraint del ayudante), y solo si el bloque está disponible se calcula el nivel por porcentaje.
+
+```ts
+export function resolveStatus(blockNumber: number, blockedSlots: number[], percentage: number): HeatmapLevel {
+  if (blockedSlots.includes(blockNumber)) return HeatmapLevel.Blocked;
+  return resolveHeatmapLevel(percentage);
+}
+```
 
 ### 17.3 Celda del heatmap (q2)
 
+Recibe un `HeatmapEntry` completo (`docs/tech-document.md` §2.3.1), no valores sueltos: así la celda no puede quedar desincronizada del cálculo.
+
 ```tsx
 // src/global/components/q2-heatmap-cell/q2-heatmap-cell.tsx
-import { HeatmapLevel, heatmapLabel } from '@modules/schedule/core/utils/heatmap-level';
+import { heatmapLabel } from '@modules/results/core/utils/heatmap-level';
+import type { HeatmapEntry } from '@resources/entities/heatmap-entry.entity';
 
 interface Q2HeatmapCellProps {
-  level: HeatmapLevel;
-  availability: number;   // 0-100
-  onSelect?: () => void;
+  entry: HeatmapEntry;
+  onSelect?: (entry: HeatmapEntry) => void;
 }
 
-export function Q2HeatmapCell({ level, availability, onSelect }: Q2HeatmapCellProps) {
-  const label = heatmapLabel(level, availability);
+export function Q2HeatmapCell({ entry, onSelect }: Q2HeatmapCellProps) {
+  const { status, available, total, percentage, day, timeRange } = entry;
+  const label = `${day} ${timeRange} — ${heatmapLabel(status, available, total, percentage)}`;
+  const isBlocked = status === 'blocked';
 
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={() => onSelect?.(entry)}
+      disabled={isBlocked}
       aria-label={label}
       title={label}
-      className={`mc-heatmap-cell mc-heatmap-cell--${level}`}
+      className={`mc-heatmap-cell mc-heatmap-cell--${status}`}
     >
-      <span className="mc-numeric text-xs">{availability}%</span>
+      {/* El porcentaje como texto: el color por sí solo no es accesible */}
+      <span className="mc-numeric text-xs">{isBlocked ? '—' : `${Math.round(percentage)}%`}</span>
     </button>
   );
 }
@@ -2765,36 +2787,47 @@ Los cinco fondos del heatmap son medios-claros salvo `conflict` y `blocked`; por
 
 ### 17.4 Bloque de la grilla (q2)
 
+Esta es la grilla donde el alumno marca sus bloques **ocupados** (inversión de carga). El objetivo es que responda en menos de 30 segundos desde el teléfono, así que el área táctil manda: mínimo 44×44px por celda.
+
 ```tsx
 // src/global/components/q2-grid-block/q2-grid-block.tsx
 type GridBlockState = 'resting' | 'occupied' | 'disabled';
 
 interface Q2GridBlockProps {
   state: GridBlockState;
-  time: string;            // '08:30'
-  label?: string;          // 'Álgebra I — Sala 204'
-  onClick?: () => void;
+  blockNumber: number;     // 1-20
+  day: string;             // 'Lunes'
+  timeRange: string;       // '08:15 – 09:25'
+  onToggle?: () => void;
 }
 
-export function Q2GridBlock({ state, time, label, onClick }: Q2GridBlockProps) {
+export function Q2GridBlock({ state, blockNumber, day, timeRange, onToggle }: Q2GridBlockProps) {
+  const stateLabel =
+    state === 'occupied' ? 'ocupado' : state === 'disabled' ? 'no disponible' : 'libre';
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={onToggle}
       disabled={state === 'disabled'}
+      aria-pressed={state === 'occupied'}
+      aria-label={`${day}, bloque ${blockNumber}, ${timeRange} — ${stateLabel}`}
       className={`mc-grid-block mc-grid-block--${state}`}
-      aria-label={label ? `${time} — ${label}` : `${time} — bloque libre`}
     >
-      <span className="mc-numeric text-xs">{time}</span>
-      {label && <span className="text-xs truncate">{label}</span>}
+      <span className="mc-numeric text-xs">{timeRange}</span>
     </button>
   );
 }
 ```
 
+`aria-pressed` y no `aria-checked`: la celda es un toggle, no un checkbox dentro de un grupo. Un lector de pantalla anuncia "ocupado / no ocupado" al pulsar, sin necesidad de releer la etiqueta.
+
 ```css
 .mc-grid-block {
   display: flex; flex-direction: column; gap: 2px;
+  /* 44px: minimo de area tactil de las WCAG 2.2 (2.5.8 Target Size) */
+  min-height: 44px;
+  min-width: 44px;
   padding: var(--mc-spacing-2);
   text-align: left;
   border: 1px solid var(--mc-border);
