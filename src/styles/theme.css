@@ -1,18 +1,24 @@
 /**
- * MatchClass Design System — tokens base.
+ * MatchClass Design System — tokens y clases utility.
  *
- * Alcance RC-001: solo los tokens necesarios para la pantalla de verificación.
- * El design system completo (clases utility, dark mode, overrides de PrimeReact,
- * heatmap y grilla) es RC-002. Referencia:
- * .claude/skills/react-architecture/architecture/12-design-system.md
+ * Fuente de verdad del detalle de implementación:
+ * .claude/skills/react-architecture/architecture/12-design-system.md §2 (tokens),
+ * §3 (dark mode), §5 (layout), §6.1/§14 (overrides PrimeReact).
+ *
+ * Todos los valores de diseño viven aquí como custom properties `--mc-*`.
+ * Ningún componente hardcodea un color hex: solo `var(--mc-*)` o clases `.mc-*`.
  */
 
 :root {
-  /* Tipografía */
+  /* ---------------------------------------------------------------------
+   * 1. Tipografía — familias
+   * ------------------------------------------------------------------- */
   --mc-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mc-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
-  /* Brand */
+  /* ---------------------------------------------------------------------
+   * 2. Colores — Brand (no cambian entre light y dark)
+   * ------------------------------------------------------------------- */
   --mc-brand-primary: #1b2a4a;
   --mc-brand-secondary: #4f46e5;
   --mc-brand-accent: #e8a838;
@@ -20,67 +26,282 @@
   --mc-brand-gradient: linear-gradient(135deg, #1b2a4a, #4f46e5);
   --mc-brand-gradient-accent: linear-gradient(135deg, #e8a838, #d97706);
 
-  /* Superficies */
+  /* ---------------------------------------------------------------------
+   * 3. Colores — Neutrales (fuente de verdad de texto/borde semánticos)
+   * ------------------------------------------------------------------- */
+  --mc-neutral-50: #f8f9fa;
+  --mc-neutral-100: #e5e7eb;
+  --mc-neutral-300: #9ca3af;
+  --mc-neutral-500: #6b7280;
+  --mc-neutral-600: #4b5563;
+  --mc-neutral-700: #374151;
+  --mc-neutral-900: #1f2937;
+
+  /* ---------------------------------------------------------------------
+   * 4. Colores — Sidebar (siempre dark, no adapta con el tema)
+   * ------------------------------------------------------------------- */
+  --mc-sidebar-bg: #1b2a4a;
+  --mc-sidebar-bg2: #22355c;
+  --mc-sidebar-bg3: #2b4272;
+  --mc-sidebar-text: #e8edf5;
+  --mc-sidebar-text-muted: #94a3b8;
+  --mc-sidebar-active: rgb(232 168 56 / 18%);
+  --mc-sidebar-hover: rgb(255 255 255 / 6%);
+  --mc-sidebar-border: rgb(255 255 255 / 8%);
+  --mc-sidebar-width: 280px;
+
+  /* ---------------------------------------------------------------------
+   * 5. Colores — Surface y Card (adaptan en dark)
+   * ------------------------------------------------------------------- */
   --mc-surface: #fafaf8;
   --mc-surface-alt: #f9fafb;
   --mc-card: #ffffff;
   --mc-card-hover: #f8f9fa;
+  --mc-topbar-bg: #ffffff;
 
-  /* Texto */
+  /* ---------------------------------------------------------------------
+   * 6. Colores — Texto (adaptan en dark)
+   * ------------------------------------------------------------------- */
   --mc-text-primary: #1f2937;
   --mc-text-secondary: #6b7280;
   --mc-text-tertiary: #9ca3af;
+  --mc-text-body: #4b5563;
+  --mc-text-strong: #374151;
+  --mc-text-disabled: #d1d5db;
   --mc-text-inverse: #ffffff;
   --mc-text-on-brand: #ffffff;
   /* Sobre dorado el texto va oscuro: #FFFFFF sobre #E8A838 da 2.1:1, falla AA */
   --mc-text-on-accent: #1f2937;
+  /* Texto en tono dorado sobre fondo claro (nunca el accent crudo como color de texto) */
+  --mc-accent-text: #b45309;
 
-  /* Bordes */
+  /* ---------------------------------------------------------------------
+   * 7. Colores — Bordes (adaptan en dark)
+   * ------------------------------------------------------------------- */
   --mc-border: #e5e7eb;
   --mc-border-strong: #d1d5db;
   --mc-border-focus: #4f46e5;
 
-  /* Semánticos */
+  /* ---------------------------------------------------------------------
+   * 8. Colores — Semánticos
+   * ------------------------------------------------------------------- */
+  /* Success */
   --mc-success: #10b981;
   --mc-success-bg: #ecfdf5;
-  --mc-danger: #ef4444;
-  --mc-danger-bg: #fef2f2;
+  --mc-success-border: #a7f3d0;
+  --mc-success-text: #065f46;
+  /* Warning */
   --mc-warning: #d97706;
   --mc-warning-bg: #fffbeb;
+  --mc-warning-border: #fcd34d;
+  --mc-warning-text: #92400e;
+  /* Danger */
+  --mc-danger: #ef4444;
+  --mc-danger-bg: #fef2f2;
+  --mc-danger-border: #fecaca;
+  --mc-danger-text: #991b1b;
+  /* Info */
+  --mc-info: #4f46e5;
+  --mc-info-bg: #eef2ff;
+  --mc-info-border: #c7d2fe;
+  --mc-info-text: #3730a3;
+  /* Accent (dorado — brand) */
+  --mc-accent: #e8a838;
+  --mc-accent-bg: #fef6e7;
+  --mc-accent-border: #f7d9a0;
 
-  /* Radios y sombras */
+  /* ---------------------------------------------------------------------
+   * 9. Colores — Mapa de calor (heatmap). Escala dedicada: NO reutilizar
+   * los tokens semánticos — un bloque naranja significa "10–39% de
+   * disponibilidad", no "advertencia". Consumido por RC-006.
+   * ------------------------------------------------------------------- */
+  --mc-heatmap-high: #34d399;
+  --mc-heatmap-medium: #fbbf24;
+  --mc-heatmap-low: #f97316;
+  --mc-heatmap-conflict: #ef4444;
+  --mc-heatmap-blocked: #6b7280;
+
+  /* ---------------------------------------------------------------------
+   * 10. Colores — Grilla de bloques. Eje distinto del heatmap: describe si
+   * un bloque está libre/ocupado/fuera de rango. Consumido por RC-005.
+   * ------------------------------------------------------------------- */
+  --mc-grid-resting: #ffffff;
+  --mc-grid-occupied: #1b2a4a;
+  --mc-grid-disabled: #f3f4f6;
+
+  /* ---------------------------------------------------------------------
+   * 11. Tipografía — escala
+   * ------------------------------------------------------------------- */
+  --mc-text-xs: 0.75rem;
+  --mc-text-sm: 0.875rem;
+  --mc-text-base: 1rem;
+  --mc-text-lg: 1.125rem;
+  --mc-text-xl: 1.25rem;
+  --mc-text-2xl: 1.5rem;
+  --mc-text-3xl: 1.875rem;
+  --mc-text-4xl: 2.25rem;
+
+  /* Font weights */
+  --mc-font-light: 300;
+  --mc-font-normal: 400;
+  --mc-font-medium: 500;
+  --mc-font-semibold: 600;
+  --mc-font-bold: 700;
+
+  /* Line heights */
+  --mc-leading-tight: 1.25;
+  --mc-leading-snug: 1.375;
+  --mc-leading-normal: 1.5;
+  --mc-leading-relaxed: 1.625;
+
+  /* ---------------------------------------------------------------------
+   * 12. Espaciado
+   * ------------------------------------------------------------------- */
+  --mc-spacing-1: 4px;
+  --mc-spacing-2: 8px;
+  --mc-spacing-3: 12px;
+  --mc-spacing-4: 16px;
+  --mc-spacing-5: 20px;
+  --mc-spacing-6: 24px;
+  --mc-spacing-8: 32px;
+  --mc-spacing-10: 40px;
+  --mc-spacing-12: 48px;
+  --mc-spacing-16: 64px;
+
+  /* ---------------------------------------------------------------------
+   * 13. Border radius
+   * ------------------------------------------------------------------- */
+  --mc-radius-xs: 4px;
   --mc-radius-sm: 6px;
   --mc-radius: 8px;
+  --mc-radius-md: 12px;
   --mc-radius-lg: 16px;
+  --mc-radius-xl: 24px;
+  --mc-radius-2xl: 32px;
   --mc-radius-full: 9999px;
+
+  /* ---------------------------------------------------------------------
+   * 14. Sombras
+   * ------------------------------------------------------------------- */
   --mc-shadow-sm: 0 1px 3px rgb(0 0 0 / 8%);
   --mc-shadow-md: 0 4px 16px rgb(0 0 0 / 10%);
+  --mc-shadow-lg: 0 8px 32px rgb(0 0 0 / 12%);
+  --mc-shadow-brand: 0 4px 16px rgb(27 42 74 / 25%);
+  --mc-shadow-accent: 0 4px 16px rgb(232 168 56 / 30%);
 
-  /* Gradientes compuestos */
+  /* ---------------------------------------------------------------------
+   * 15. Gradientes y fondos compuestos
+   * ------------------------------------------------------------------- */
   --mc-hero-bg: linear-gradient(135deg, #0c1322 0%, #1b2a4a 55%, #16223a 100%);
+  --mc-gradient-text-on-dark: linear-gradient(90deg, #e8a838, #a5b4fc);
+
+  /* ---------------------------------------------------------------------
+   * 16. Z-index layers
+   * ------------------------------------------------------------------- */
+  --mc-z-base: 0;
+  --mc-z-dropdown: 10;
+  --mc-z-sticky: 20;
+  --mc-z-fixed: 30;
+  --mc-z-sidebar: 50;
+  --mc-z-overlay: 100;
+  --mc-z-modal: 200;
+  --mc-z-toast: 300;
+  --mc-z-tooltip: 400;
+
+  /* ---------------------------------------------------------------------
+   * 17. Transiciones
+   * ------------------------------------------------------------------- */
+  --mc-transition-fast: 150ms ease;
+  --mc-transition: 200ms ease;
+  --mc-transition-slow: 300ms ease;
+
+  /* ---------------------------------------------------------------------
+   * 18. Overrides de PrimeReact — variables que el preset Aura/Lara respeta.
+   * Suficiente para el 95% de los casos (§6.1 del design system); un
+   * `definePreset` JS-level queda diferido hasta que haga falta.
+   * ------------------------------------------------------------------- */
+  --p-primary-color: var(--mc-brand-primary);
+  --p-primary-contrast-color: #ffffff;
+  --p-focus-ring-color: rgb(79 70 229 / 30%);
+  --p-surface-0: var(--mc-card);
+  --p-surface-ground: var(--mc-surface);
+  --p-text-color: var(--mc-text-primary);
+  --p-text-muted-color: var(--mc-text-secondary);
 }
 
 [data-theme='dark'] {
+  /* Surface y card */
   --mc-surface: #0f1729;
   --mc-surface-alt: #16223a;
   --mc-card: #1b2a4a;
   --mc-card-hover: #22355c;
+  --mc-topbar-bg: #1b2a4a;
 
+  /* Texto */
   --mc-text-primary: #f3f4f6;
   --mc-text-secondary: #9ca3af;
   --mc-text-tertiary: #6b7280;
+  --mc-text-body: #d1d5db;
+  --mc-text-strong: #e5e7eb;
+  --mc-text-disabled: #4b5563;
 
+  /* Bordes */
   --mc-border: rgb(255 255 255 / 8%);
   --mc-border-strong: rgb(255 255 255 / 14%);
   --mc-border-focus: #a5b4fc;
 
+  /* Semánticos */
   --mc-success: #34d399;
   --mc-success-bg: rgb(16 185 129 / 15%);
-  --mc-danger: #f87171;
-  --mc-danger-bg: rgb(239 68 68 / 15%);
+  --mc-success-border: rgb(16 185 129 / 30%);
+  --mc-success-text: #6ee7b7;
+
   --mc-warning: #fbbf24;
   --mc-warning-bg: rgb(217 119 6 / 15%);
+  --mc-warning-border: rgb(217 119 6 / 30%);
+  --mc-warning-text: #fcd34d;
+
+  --mc-danger: #f87171;
+  --mc-danger-bg: rgb(239 68 68 / 15%);
+  --mc-danger-border: rgb(239 68 68 / 30%);
+  --mc-danger-text: #fca5a5;
+
+  --mc-info: #a5b4fc;
+  --mc-info-bg: rgb(79 70 229 / 20%);
+  --mc-info-border: rgb(79 70 229 / 35%);
+  --mc-info-text: #c7d2fe;
+
+  --mc-accent: #f2c14e;
+  --mc-accent-bg: rgb(232 168 56 / 15%);
+  --mc-accent-border: rgb(232 168 56 / 30%);
+  --mc-accent-text: #f5d08a;
+
+  /* Grilla de bloques: el ocupado mantiene el navy pero se distingue por el
+   * borde dorado — casi se funde con el fondo sin él, no quitarlo. */
+  --mc-grid-resting: #16223a;
+  --mc-grid-occupied: #1b2a4a;
+  --mc-grid-disabled: rgb(255 255 255 / 4%);
+
+  /* Overrides PrimeReact — el preset Aura/Lara adopta el dark theme al
+   * sobreescribir estas variables de superficie/texto. */
+  --surface-a: var(--mc-card);
+  --surface-b: var(--mc-surface);
+  --surface-c: rgb(255 255 255 / 6%);
+  --surface-e: var(--mc-card);
+  --text-color: var(--mc-text-primary);
+  --text-color-secondary: var(--mc-text-secondary);
+  --surface-card: var(--mc-card);
+  --surface-border: var(--mc-border);
+
+  --p-surface-0: var(--mc-card);
+  --p-surface-ground: var(--mc-surface);
+  --p-text-color: var(--mc-text-primary);
+  --p-text-muted-color: var(--mc-text-secondary);
 }
+
+/* ---------------------------------------------------------------------
+ * Estilos base
+ * ------------------------------------------------------------------- */
 
 body {
   margin: 0;
@@ -90,6 +311,9 @@ body {
   background: var(--mc-surface);
   color: var(--mc-text-primary);
   -webkit-font-smoothing: antialiased;
+  transition:
+    background-color var(--mc-transition-slow),
+    color var(--mc-transition-slow);
 }
 
 /* Datos numéricos comparables en vertical: mono + tabular */
@@ -102,4 +326,320 @@ body {
 :focus-visible {
   outline: 2px solid var(--mc-border-focus);
   outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------
+ * AppShell layout (Q5AppShell)
+ * ------------------------------------------------------------------- */
+
+.mc-app-shell {
+  min-height: 100vh;
+  background: var(--mc-surface);
+}
+
+.mc-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--mc-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--mc-sidebar-bg);
+  border-right: 1px solid var(--mc-sidebar-border);
+  z-index: var(--mc-z-sidebar);
+  transform: translateX(-100%);
+  transition: transform var(--mc-transition-slow);
+}
+
+.mc-sidebar--open {
+  transform: translateX(0);
+}
+
+@media (min-width: 1024px) {
+  .mc-sidebar {
+    transform: translateX(0);
+  }
+}
+
+.mc-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-3);
+  padding: var(--mc-spacing-3) var(--mc-spacing-6);
+  color: var(--mc-sidebar-text-muted);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-medium);
+  text-decoration: none;
+  transition:
+    background-color var(--mc-transition-fast),
+    color var(--mc-transition-fast);
+}
+
+.mc-sidebar-item:hover {
+  background: var(--mc-sidebar-hover);
+  color: var(--mc-sidebar-text);
+}
+
+.mc-sidebar-item--active {
+  background: var(--mc-sidebar-active);
+  color: var(--mc-sidebar-text);
+}
+
+.mc-sidebar-item__icon {
+  flex-shrink: 0;
+}
+
+.mc-main {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .mc-main {
+    margin-left: var(--mc-sidebar-width);
+  }
+}
+
+.mc-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--mc-z-fixed);
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  padding-inline: var(--mc-spacing-6);
+  background: var(--mc-topbar-bg);
+  border-bottom: 1px solid var(--mc-border);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-content {
+  flex: 1;
+  padding: var(--mc-spacing-6);
+}
+
+/* ---------------------------------------------------------------------
+ * Botones (uso directo con <button className="mc-btn mc-btn-primary">).
+ * Q1Button envuelve el Button de PrimeReact y usa los overrides --p-*.
+ * ------------------------------------------------------------------- */
+
+.mc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mc-spacing-2);
+  padding: var(--mc-spacing-2) var(--mc-spacing-4);
+  border-radius: var(--mc-radius);
+  border: 1px solid transparent;
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-semibold);
+  line-height: var(--mc-leading-normal);
+  cursor: pointer;
+  transition:
+    background-color var(--mc-transition-fast),
+    box-shadow var(--mc-transition-fast),
+    border-color var(--mc-transition-fast),
+    opacity var(--mc-transition-fast);
+}
+
+.mc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mc-btn-primary {
+  background: var(--mc-brand-gradient);
+  color: var(--mc-text-on-brand);
+  box-shadow: var(--mc-shadow-sm);
+}
+
+.mc-btn-primary:hover:not(:disabled) {
+  box-shadow: var(--mc-shadow-brand);
+}
+
+.mc-btn-secondary {
+  background: transparent;
+  color: var(--mc-brand-secondary);
+  border-color: var(--mc-border-strong);
+}
+
+.mc-btn-secondary:hover:not(:disabled) {
+  background: var(--mc-surface-alt);
+}
+
+.mc-btn-ghost {
+  background: transparent;
+  color: var(--mc-text-secondary);
+}
+
+.mc-btn-ghost:hover:not(:disabled) {
+  background: var(--mc-surface-alt);
+  color: var(--mc-text-primary);
+}
+
+.mc-btn-danger {
+  background: var(--mc-danger);
+  color: var(--mc-text-inverse);
+}
+
+.mc-btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* ---------------------------------------------------------------------
+ * Card
+ * ------------------------------------------------------------------- */
+
+.mc-card {
+  background: var(--mc-card);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-sm);
+  padding: var(--mc-spacing-6);
+  transition: background-color var(--mc-transition-slow);
+}
+
+/* ---------------------------------------------------------------------
+ * Badges (Q1StatusBadge)
+ * ------------------------------------------------------------------- */
+
+.mc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mc-spacing-1);
+  padding: 2px var(--mc-spacing-2);
+  border-radius: var(--mc-radius-full);
+  border: 1px solid transparent;
+  font-size: var(--mc-text-xs);
+  font-weight: var(--mc-font-medium);
+  line-height: var(--mc-leading-tight);
+  white-space: nowrap;
+}
+
+.mc-badge-success {
+  background: var(--mc-success-bg);
+  color: var(--mc-success-text);
+  border-color: var(--mc-success-border);
+}
+
+.mc-badge-warning {
+  background: var(--mc-warning-bg);
+  color: var(--mc-warning-text);
+  border-color: var(--mc-warning-border);
+}
+
+.mc-badge-danger {
+  background: var(--mc-danger-bg);
+  color: var(--mc-danger-text);
+  border-color: var(--mc-danger-border);
+}
+
+.mc-badge-info {
+  background: var(--mc-info-bg);
+  color: var(--mc-info-text);
+  border-color: var(--mc-info-border);
+}
+
+.mc-badge-accent {
+  background: var(--mc-accent-bg);
+  color: var(--mc-accent-text);
+  border-color: var(--mc-accent-border);
+}
+
+.mc-badge-neutral {
+  background: var(--mc-neutral-50);
+  color: var(--mc-neutral-600);
+  border-color: var(--mc-neutral-100);
+}
+
+/* ---------------------------------------------------------------------
+ * Formularios (Q2InputField)
+ * ------------------------------------------------------------------- */
+
+.mc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-1);
+}
+
+.mc-form-label {
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-strong);
+}
+
+.mc-form-error {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-1);
+  font-size: var(--mc-text-xs);
+  color: var(--mc-danger-text);
+}
+
+.mc-form-hint {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-tertiary);
+}
+
+/* ---------------------------------------------------------------------
+ * Empty state (Q2Forbidden y estados vacíos)
+ * ------------------------------------------------------------------- */
+
+.mc-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--mc-spacing-16) var(--mc-spacing-6);
+}
+
+.mc-empty-state__title {
+  font-size: var(--mc-text-lg);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+  margin: 0 0 var(--mc-spacing-2);
+}
+
+.mc-empty-state__description {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+  margin: 0;
+  max-width: 28rem;
+}
+
+/* ---------------------------------------------------------------------
+ * Animaciones de entrada
+ * ------------------------------------------------------------------- */
+
+@keyframes mc-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mc-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mc-animate-fade-in {
+  animation: mc-fade-in var(--mc-transition) both;
+}
+
+.mc-animate-slide-up {
+  animation: mc-slide-up var(--mc-transition) both;
 }

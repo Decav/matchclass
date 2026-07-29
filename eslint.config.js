@@ -130,4 +130,15 @@ export default tseslint.config(
     files: ['vite.config.ts', 'eslint.config.js'],
     languageOptions: { globals: globals.node },
   },
+
+  // Los providers colocan el componente Provider y su hook de contexto
+  // (useXContext) en el mismo archivo por contrato (ver 12-design-system.md
+  // §3.3): Fast Refresh pierde granularidad ahí, pero partir el archivo
+  // rompería la ubicación acordada en los RCs.
+  {
+    files: ['src/global/providers/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );
