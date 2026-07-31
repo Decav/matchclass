@@ -453,7 +453,10 @@ body {
 }
 
 .mc-btn-primary {
-  background: var(--mc-brand-gradient);
+  /* Frame "Primary Button" (matchclass_design.pen) es navy sólido, sin
+     gradiente — --mc-brand-gradient queda disponible para otros usos
+     decorativos, pero no es el fondo por defecto del botón primario. */
+  background: var(--mc-brand-primary);
   color: var(--mc-text-on-brand);
   box-shadow: var(--mc-shadow-sm);
 }
@@ -572,6 +575,50 @@ body {
   color: var(--mc-text-strong);
 }
 
+/*
+ * `.p-inputtext` no trae estilo propio en esta versión de PrimeReact sin un
+ * theme clásico importado (ver nota en q1-button.tsx) — esta clase cubre
+ * borde, fondo y foco directamente, sin depender de esa pieza rota.
+ */
+.mc-form-input {
+  width: 100%;
+  padding: var(--mc-spacing-2) var(--mc-spacing-3);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius);
+  background: var(--mc-card);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-sm);
+  line-height: var(--mc-leading-normal);
+  transition:
+    border-color var(--mc-transition-fast),
+    box-shadow var(--mc-transition-fast);
+}
+
+.mc-form-input::placeholder {
+  color: var(--mc-text-tertiary);
+}
+
+.mc-form-input:focus {
+  outline: none;
+  border-color: var(--mc-border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc-border-focus) 20%, transparent);
+}
+
+.mc-form-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mc-form-input.p-invalid {
+  border-color: var(--mc-danger-border);
+}
+
+.mc-form-input.p-invalid:focus {
+  border-color: var(--mc-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc-danger) 20%, transparent);
+}
+
 .mc-form-error {
   display: flex;
   align-items: center;
@@ -642,4 +689,133 @@ body {
 
 .mc-animate-slide-up {
   animation: mc-slide-up var(--mc-transition) both;
+}
+
+/* ---------------------------------------------------------------------
+ * Página de acceso (RC-003) — tabs, card, celdas de código, badge de sala.
+ * Fuente de verdad visual: matchclass_design.pen, frames "Acceso Desktop -
+ * Ayudante/Alumno Código/Alumno Nombre" y "Auth Components".
+ * ------------------------------------------------------------------- */
+
+.mc-access-card {
+  width: 400px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-6);
+}
+
+.mc-access-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mc-spacing-3);
+}
+
+.mc-access-logo-box {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-brand-primary);
+  color: var(--mc-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--mc-font-bold);
+  font-size: var(--mc-text-lg);
+}
+
+.mc-access-logo-name {
+  font-size: var(--mc-text-xl);
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-primary);
+}
+
+.mc-access-tabs {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
+
+.mc-access-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  padding-block: var(--mc-spacing-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-tertiary);
+}
+
+.mc-access-tab--active {
+  color: var(--mc-brand-primary);
+  font-weight: var(--mc-font-semibold);
+}
+
+.mc-access-tab-indicator {
+  width: 100%;
+  height: 2px;
+  background: var(--mc-border);
+}
+
+.mc-access-tab-indicator--active {
+  background: var(--mc-brand-primary);
+}
+
+.mc-code-cell {
+  width: 44px;
+  height: 54px;
+  text-align: center;
+  border-radius: var(--mc-radius);
+  border: 2px solid var(--mc-border);
+  background: var(--mc-card);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-2xl);
+  font-weight: var(--mc-font-bold);
+  transition: border-color var(--mc-transition-fast);
+}
+
+.mc-code-cell:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mc-code-cell--error {
+  border-color: var(--mc-danger);
+}
+
+.mc-room-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mc-spacing-2);
+  padding: var(--mc-spacing-4);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-surface-alt);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-text-base);
+  font-weight: var(--mc-font-semibold);
+  text-align: center;
+}
+
+.mc-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  padding: var(--mc-spacing-3);
+  border-radius: var(--mc-radius);
+  font-size: var(--mc-text-sm);
+}
+
+.mc-alert-danger {
+  background: var(--mc-danger-bg);
+  color: var(--mc-danger-text);
 }

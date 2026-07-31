@@ -22,9 +22,11 @@
 
 ## Descripción / Contexto
 
-El ayudante nuevo llega desde la pantalla de login a través del link "Registrarse". Completar el registro crea la cuenta en Firebase Auth y, simultáneamente, un documento `users/{uid}` en Firestore con su información básica y rol `helper`.
+El ayudante nuevo llega desde la página `/acceso` a través del link "Registrarse" del tab Ayudante. La página de registro (`/registro`) es independiente, con su propia ruta y sin tabs.
 
-Esta HU no maneja inicio de sesión automático post-registro — si Firebase Auth lo hace por defecto, se aprovecha.
+Completar el registro crea la cuenta en Firebase Auth y, simultáneamente, un documento `users/{uid}` en Firestore con su información básica y rol `helper`.
+
+Firebase Auth inicia sesión automáticamente post-registro. Tras crear la cuenta, el ayudante es redirigido al dashboard.
 
 ---
 
@@ -87,16 +89,17 @@ Esta HU no maneja inicio de sesión automático post-registro — si Firebase Au
 
 ## Comportamiento Visual (UI/UX)
 
-- **Controles:** Botón "Crear cuenta" deshabilitado si algún campo obligatorio está vacío. Campo "Confirmar contraseña" con toggle de visibilidad al igual que el campo contraseña. Link "Ya tengo cuenta" que vuelve al login
+- **Patrón visual:** Mismo que el login — card centrado con ancho máximo 400px, fondo con `$bg-page`. Sin sidebar ni navegación. Prioridad desktop; mobile se define después
+- **Controles:** Botón "Crear cuenta" deshabilitado si algún campo obligatorio está vacío. Campo "Confirmar contraseña" con toggle de visibilidad al igual que el campo contraseña. Link "Ya tengo cuenta" que vuelve a `/acceso`
 - **Estados de carga:** Botón muestra spinner y se deshabilita. Campos se deshabilitan para evitar doble envío
-- **Transición:** Al registrarse correctamente, redirigir al dashboard. Misma transición que login
+- **Transición:** Al registrarse correctamente, redirigir al dashboard
 
 ---
 
 ## Definition of Done (DoD)
 
-- [ ] La interfaz se adapta a desktop y mobile siguiendo el mismo patrón visual que el login
+- [ ] La interfaz sigue el mismo patrón visual que el login (card centrado 400px, desktop-first)
 - [ ] Las validaciones bloquean el envío si hay campos vacíos, email inválido, contraseña débil o confirmación no coincide
-- [ ] Al registrarse, el documento `users/{uid}` en Firestore se crea correctamente con todos los campos requeridos
+- [ ] Al registrarse, el documento `users/{uid}` en Firestore se crea correctamente con `displayName`, `email`, `role: helper` y `createdAt`
 - [ ] Los estados de error muestran mensajes claros sin caídas de la app
 - [ ] La HU cumple con los criterios de aceptación validados por QA

@@ -11,6 +11,8 @@ export default tseslint.config(
       'dist',
       'node_modules',
       'coverage',
+      'playwright-report',
+      'test-results',
       // Plantillas de referencia de las skills: no son codigo del proyecto
       // y no estan en ningun tsconfig.
       '.claude/**',
@@ -72,6 +74,7 @@ export default tseslint.config(
   // El SDK de Firebase solo puede importarse desde library/
   {
     files: ['src/global/**/*.{ts,tsx}', 'src/modules/**/*.{ts,tsx}', 'src/app/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -86,6 +89,15 @@ export default tseslint.config(
         },
       ],
     },
+  },
+
+  // Excepción: los tests SÍ pueden importar `firebase/app` (`FirebaseError`)
+  // para simular códigos de error reales sin pegarle a Firebase — ver
+  // 08-testing.md "Simular un error de Firebase en un test". El repository
+  // que consume el error real sigue viviendo solo en library/.
+  {
+    files: ['**/*.test.{ts,tsx}'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 
   // resources es agnóstico: sin React, sin Axios, sin Firebase
@@ -125,9 +137,9 @@ export default tseslint.config(
     },
   },
 
-  // La config de Vite corre en Node, no en el browser
+  // La config de Vite/Playwright y los scripts de e2e corren en Node, no en el browser
   {
-    files: ['vite.config.ts', 'eslint.config.js'],
+    files: ['vite.config.ts', 'eslint.config.js', 'playwright.config.ts', 'e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
 

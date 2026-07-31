@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -22,5 +23,18 @@ export default defineConfig({
     port: 5173,
     // Falla en vez de saltar al 5174: el puerto es parte del contrato del RC-001
     strictPort: true,
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    passWithNoTests: true,
+    setupFiles: ['./src/test/setup.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/test/**', 'src/**/*.stories.tsx', 'src/app/main.tsx'],
+    },
   },
 });

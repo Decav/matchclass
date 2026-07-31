@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { connectEmulators } from '@library/firebase';
 import { AppProviders } from './providers/app-providers';
 
-// ORDEN CRITICO — no reordenar, no agregar temas de PrimeReact.
-// theme.css ya sobreescribe las variables CSS que definiria un tema de PrimeReact.
-import 'primereact/resources/primereact.min.css';
+// PrimeReact 10 inyecta su CSS en runtime via el preset Aura (ver
+// `@library/theme/mc-preset.ts` + `AppProviders`), no via un archivo de tema
+// estatico — `primereact/resources/*.css` esta deprecado y vacio en v10.
 import '@/styles/main.css';
 
 // Antes de renderizar: el SDK lanza si se le cambia el host despues de
