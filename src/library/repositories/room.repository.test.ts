@@ -84,3 +84,55 @@ describe('RoomRepository.findByCode', () => {
     expect(room?.status).toBe('closed');
   });
 });
+
+describe('RoomRepository.listByOwner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('consulta por createdBy sin orderBy (RC-008 §5: evita el índice compuesto)', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+
+    await RoomRepository.listByOwner('helper-1');
+
+    expect(whereMock).toHaveBeenCalledWith('createdBy', '==', 'helper-1');
+    expect(whereMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('mapea todas las salas del ayudante a Room[], sin any', async () => {
+    getDocsMock.mockResolvedValue({
+      docs: [
+        fakeDoc('room-1', {
+          code: 'ABCDEF',
+          name: 'Sala 1',
+          subject: 'Materia',
+          section: 'Secc 1',
+          createdBy: 'helper-1',
+          status: 'active',
+          helperBlockedSlots: [],
+        }),
+        fakeDoc('room-2', {
+          code: 'GHIJKL',
+          name: 'Sala 2',
+          subject: 'Materia',
+          section: 'Secc 2',
+          createdBy: 'helper-1',
+          status: 'closed',
+          helperBlockedSlots: [],
+          studentLimit: 25,
+        }),
+      ],
+    });
+
+    const rooms = await RoomRepository.listByOwner('helper-1');
+
+    expect(rooms).toHaveLength(2);
+    expect(rooms[0]?.id).toBe('room-1');
+    expect(rooms[1]).toMatchObject({ id: 'room-2', studentLimit: 25 });
+  });
+
+  it('sin salas devuelve un arreglo vacío', async () => {
+    getDocsMock.mockResolvedValue({ docs: [] });
+    expect(await RoomRepository.listByOwner('helper-sin-salas')).toEqual([]);
+  });
+});

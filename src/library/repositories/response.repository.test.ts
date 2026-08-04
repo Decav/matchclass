@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { getDocMock, setDocMock, docMock, collectionMock, serverTimestampMock } = vi.hoisted(() => ({
-  getDocMock: vi.fn(),
-  setDocMock: vi.fn(),
-  docMock: vi.fn((...args: unknown[]) => ({ __doc: args })),
-  collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
-  serverTimestampMock: vi.fn(() => '__serverTimestamp__'),
-}));
+const { getDocMock, setDocMock, docMock, collectionMock, serverTimestampMock, getCountFromServerMock } =
+  vi.hoisted(() => ({
+    getDocMock: vi.fn(),
+    setDocMock: vi.fn(),
+    docMock: vi.fn((...args: unknown[]) => ({ __doc: args })),
+    collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
+    serverTimestampMock: vi.fn(() => '__serverTimestamp__'),
+    getCountFromServerMock: vi.fn(),
+  }));
 
 vi.mock('firebase/firestore', () => ({
   getDoc: getDocMock,
@@ -14,6 +16,7 @@ vi.mock('firebase/firestore', () => ({
   doc: docMock,
   collection: collectionMock,
   serverTimestamp: serverTimestampMock,
+  getCountFromServer: getCountFromServerMock,
   // Stub: ninguna fixture de este archivo usa un Timestamp real, pero
   // `toDateOrNull` hace `instanceof Timestamp` y necesita que exista.
   Timestamp: class {},
@@ -76,6 +79,22 @@ describe('ResponseRepository', () => {
         }),
         { merge: true },
       );
+    });
+  });
+
+  describe('countByRoom', () => {
+    it('usa getCountFromServer (agregación de servidor) y devuelve el número, sin any', async () => {
+      getCountFromServerMock.mockResolvedValue({ data: () => ({ count: 12 }) });
+
+      const count = await ResponseRepository.countByRoom('room-1');
+
+      expect(count).toBe(12);
+      expect(getCountFromServerMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('sala sin respuestas devuelve 0', async () => {
+      getCountFromServerMock.mockResolvedValue({ data: () => ({ count: 0 }) });
+      expect(await ResponseRepository.countByRoom('room-vacia')).toBe(0);
     });
   });
 });

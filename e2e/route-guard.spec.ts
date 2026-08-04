@@ -21,7 +21,7 @@ test.describe('Q5ProtectedRoute', () => {
     // Navegación directa con sesión ya activa: nunca debe pasar por /acceso.
     await page.goto('/dashboard');
     await expect(page).toHaveURL('/dashboard');
-    await expect(page.getByText('Dashboard en construcción')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mis salas' })).toBeVisible();
   });
 
   test('sin sesión → /dashboard redirige a /acceso, la URL cambia, y "atrás" no vuelve a /dashboard (Escenario 2)', async ({

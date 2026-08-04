@@ -16,7 +16,8 @@ test.describe('Registro de ayudante', () => {
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
 
     await expect(page).toHaveURL('/dashboard');
-    await expect(page.getByText('Dashboard en construcción')).toBeVisible();
+    // Cuenta recién creada, sin salas: cae en el empty state (RC-008).
+    await expect(page.getByText('Aún no tienes salas')).toBeVisible();
   });
 
   test('email ya registrado muestra error sin redirigir (Escenario 2)', async ({ page }) => {

@@ -92,8 +92,10 @@ export function Q4LoginForm() {
         disabled={isSubmitDisabled}
       />
 
-      <p className="text-center text-sm" style={{ color: 'var(--mc-brand-secondary)' }}>
-        ¿Olvidaste tu contraseña?
+      <p className="text-center text-sm">
+        <Link to="/recuperar" style={{ color: 'var(--mc-brand-secondary)' }}>
+          ¿Olvidaste tu contraseña?
+        </Link>
       </p>
 
       <div className="flex items-center gap-3">

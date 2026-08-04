@@ -5,12 +5,14 @@ const {
   createUserWithEmailAndPasswordMock,
   signInAnonymouslyMock,
   onAuthStateChangedMock,
+  sendPasswordResetEmailMock,
   authStub,
 } = vi.hoisted(() => ({
   signInWithEmailAndPasswordMock: vi.fn(),
   createUserWithEmailAndPasswordMock: vi.fn(),
   signInAnonymouslyMock: vi.fn(),
   onAuthStateChangedMock: vi.fn(),
+  sendPasswordResetEmailMock: vi.fn(),
   authStub: { currentUser: null as { uid: string } | null },
 }));
 
@@ -19,6 +21,7 @@ vi.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: createUserWithEmailAndPasswordMock,
   signInAnonymously: signInAnonymouslyMock,
   onAuthStateChanged: onAuthStateChangedMock,
+  sendPasswordResetEmail: sendPasswordResetEmailMock,
 }));
 
 vi.mock('@library/firebase/firebase-app', () => ({ auth: authStub }));
@@ -65,6 +68,22 @@ describe('AuthRepository', () => {
 
     expect(uid).toBe('uid-nuevo');
     expect(signInAnonymouslyMock).toHaveBeenCalledOnce();
+  });
+
+  it('sendPasswordResetEmail delega en el SDK sin transformar el resultado', async () => {
+    sendPasswordResetEmailMock.mockResolvedValue(undefined);
+
+    await AuthRepository.sendPasswordResetEmail('ayudante@matchclass.cl');
+
+    expect(sendPasswordResetEmailMock).toHaveBeenCalledWith(authStub, 'ayudante@matchclass.cl');
+  });
+
+  it('sendPasswordResetEmail no swallowea errores del SDK', async () => {
+    sendPasswordResetEmailMock.mockRejectedValue(new Error('auth/user-not-found'));
+
+    await expect(AuthRepository.sendPasswordResetEmail('nadie@matchclass.cl')).rejects.toThrow(
+      'auth/user-not-found',
+    );
   });
 
   it('subscribeToAuthState traduce FirebaseUser a uid (o null)', () => {

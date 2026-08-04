@@ -53,4 +53,15 @@ export const RoomRepository = {
     const first = snapshot.docs[0];
     return first ? toRoom(first) : null;
   },
+
+  /**
+   * Salas del ayudante para el dashboard (RC-008 §5). Sin `orderBy` a
+   * propósito: evita depender de un índice compuesto que no existe en
+   * `firestore.indexes.json` — el orden final lo resuelve `RoomService`
+   * (`getDashboardRooms`) del lado del cliente.
+   */
+  listByOwner: async (uid: string): Promise<Room[]> => {
+    const snapshot = await getDocs(query(collection(db, 'rooms'), where('createdBy', '==', uid)));
+    return snapshot.docs.map(toRoom);
+  },
 };

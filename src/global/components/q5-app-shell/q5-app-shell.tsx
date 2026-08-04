@@ -1,12 +1,27 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Menu, Sun, Moon, GraduationCap, type LucideIcon } from 'lucide-react';
+import { Menu, Sun, Moon, type LucideIcon } from 'lucide-react';
 import { useThemeContext } from '@global/providers/theme-provider';
 
 export interface Q5NavItem {
   label: string;
   icon: LucideIcon;
-  to: string;
+  /** Requerido salvo `disabled: true` (ítem "Próximamente" sin ruta todavía). */
+  to?: string;
+  /**
+   * Ítem sin ruta ni interacción (RC-008 §10, "Próximamente"). Se renderiza
+   * como texto estático en vez de `NavLink` — nunca navega, nunca dispara
+   * `onClick`.
+   */
+  disabled?: boolean;
+  /**
+   * Si es `false`, este ítem nunca recibe el estilo "activo" aunque su `to`
+   * coincida con la ruta actual. Existe para el caso de RC-008 §10 ("Dashboard"
+   * y "Mis salas" navegan ambos a `/dashboard` mientras sea la misma página):
+   * sin esto, `NavLink` marca los dos como activos a la vez, que no es lo que
+   * muestra el diseño (un solo ítem resaltado). Default `true`.
+   */
+  matchActive?: boolean;
 }
 
 export interface Q5AppShellProps {
@@ -51,49 +66,58 @@ export function Q5AppShell({ children, navItems = [], footer }: Q5AppShellProps)
         className={`mc-sidebar${sidebarOpen ? ' mc-sidebar--open' : ''}`}
         aria-label="Navegación principal"
       >
-        <div
-          className="flex items-center gap-3 px-6 py-5 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--mc-sidebar-border)' }}
-        >
+        <div className="flex items-center gap-3 flex-shrink-0" style={{ paddingBottom: 20 }}>
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--mc-brand-gradient)' }}
+            className="flex items-center justify-center flex-shrink-0 text-sm font-bold"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 9,
+              background: 'var(--mc-text-inverse)',
+              color: 'var(--mc-brand-primary)',
+            }}
+            aria-hidden="true"
           >
-            <GraduationCap size={18} strokeWidth={2} style={{ color: 'var(--mc-text-inverse)' }} />
+            MC
           </div>
           <span
-            className="font-semibold text-sm truncate"
-            style={{ color: 'var(--mc-sidebar-text)' }}
+            className="font-bold text-lg truncate"
+            style={{ color: 'var(--mc-text-inverse)' }}
           >
             MatchClass
           </span>
         </div>
 
         {navItems.length > 0 && (
-          <nav className="flex-1 py-4 overflow-y-auto" aria-label="Secciones">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `mc-sidebar-item${isActive ? ' mc-sidebar-item--active' : ''}`
-                }
-              >
-                <item.icon size={18} strokeWidth={2} className="mc-sidebar-item__icon" aria-hidden="true" />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+          <nav className="flex-1 flex flex-col gap-2 overflow-y-auto" aria-label="Secciones">
+            {navItems.map((item) =>
+              item.disabled || !item.to ? (
+                <span key={item.label} className="mc-sidebar-item--disabled" aria-disabled="true">
+                  <item.icon size={20} strokeWidth={2} className="mc-sidebar-item__icon" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </span>
+              ) : (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `mc-sidebar-item${isActive && item.matchActive !== false ? ' mc-sidebar-item--active' : ''}`
+                  }
+                >
+                  <item.icon size={20} strokeWidth={2} className="mc-sidebar-item__icon" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ),
+            )}
           </nav>
         )}
 
         {footer && (
-          <div
-            className="flex-shrink-0 p-4"
-            style={{ borderTop: '1px solid var(--mc-sidebar-border)' }}
-          >
-            {footer}
-          </div>
+          <>
+            <div className="mc-sidebar-divider" />
+            <div className="mc-sidebar-footer">{footer}</div>
+          </>
         )}
       </aside>
 

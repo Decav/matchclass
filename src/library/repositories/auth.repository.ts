@@ -2,7 +2,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInAnonymously,
+  signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { auth } from '@library/firebase/firebase-app';
@@ -37,6 +39,26 @@ export const AuthRepository = {
     if (auth.currentUser) return auth.currentUser.uid;
     const credential = await signInAnonymously(auth);
     return credential.user.uid;
+  },
+
+  /**
+   * Use case "LogoutAyudante" (RC-006 §6, paso 1). Invalida la sesión real
+   * en IndexedDB — tras esto, `subscribeToAuthState`/`onAuthStateChanged`
+   * emite `null` incluso recargando la página (HU-04, Escenario 3).
+   */
+  logout: async (): Promise<void> => {
+    await signOut(auth);
+  },
+
+  /**
+   * Use case "RecoverPassword" (RC-007 §6, paso 2). Wrapper delgado de
+   * `sendPasswordResetEmail(auth, email)` — no swallowea ningún error
+   * (incluido `auth/user-not-found`): tratar ese código como éxito es una
+   * decisión de producto/seguridad de HU-05, no de este repository, y vive
+   * en `useRecoverPasswordMutation`.
+   */
+  sendPasswordResetEmail: async (email: string): Promise<void> => {
+    await firebaseSendPasswordResetEmail(auth, email);
   },
 
   /**

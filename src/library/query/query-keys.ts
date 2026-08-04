@@ -17,6 +17,7 @@ export const queryKeys = {
   responses: {
     byRoom: (roomId: string) => ['responses', 'room', roomId] as const,
     mine: (roomId: string, uid: string) => ['responses', 'room', roomId, 'mine', uid] as const,
+    countByRoom: (roomId: string) => ['responses', 'room', roomId, 'count'] as const,
   },
   results: {
     byRoom: (roomId: string) => ['results', 'room', roomId] as const,

@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getCountFromServer,
   getDoc,
   setDoc,
   serverTimestamp,
@@ -34,6 +35,16 @@ export const ResponseRepository = {
     const snapshot = await getDoc(doc(responsesRef(roomId), uid));
     if (!snapshot.exists()) return null;
     return toResponse(snapshot);
+  },
+
+  /**
+   * Conteo para el dashboard (RC-008 §5). Usa una agregación del lado del
+   * servidor (`getCountFromServer`) en vez de `getDocs` + `.length`: no
+   * descarga los documentos completos, solo el número.
+   */
+  countByRoom: async (roomId: string): Promise<number> => {
+    const snapshot = await getCountFromServer(responsesRef(roomId));
+    return snapshot.data().count;
   },
 
   /**

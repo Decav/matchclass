@@ -10,7 +10,7 @@ test.describe('Tab Ayudante', () => {
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
 
     await expect(page).toHaveURL('/dashboard');
-    await expect(page.getByText('Dashboard en construcción')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mis salas' })).toBeVisible();
   });
 
   test('sesión ya activa abre la app directo en /dashboard, sin ver /acceso (Escenario 4)', async ({
