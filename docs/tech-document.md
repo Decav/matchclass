@@ -11,7 +11,7 @@
 
 MatchClass es una plataforma web que automatiza la programación de ayudantías académicas. Su innovación principal es la **inversión de carga de entrada de datos**: en lugar de que el alumno marque sus bloques libres en una grilla (tarea lenta y propensa a errores), solo marca sus bloques ocupados.
 
-El ayudante crea una sala, define sus propias restricciones horarias, y comparte un código corto con los alumnos. Los alumnos ingresan anónimamente, marcan sus bloques ocupados en una grilla de 20 bloques (matriz USM), y el sistema genera automáticamente un mapa de calor y un ranking de los mejores horarios disponibles.
+El ayudante crea una sala, define sus propias restricciones horarias, y comparte un código corto con los alumnos. Los alumnos ingresan anónimamente, marcan sus bloques ocupados en una grilla de 10 bloques (matriz USM), y el sistema genera automáticamente un mapa de calor y un ranking de los mejores horarios disponibles.
 
 ### Flujo de Alto Nivel
 
@@ -55,12 +55,12 @@ Representa un espacio virtual de coordinación para una ayudantía.
 | `createdBy` | string (UID) | Firebase Auth UID | Identificador del ayudante que creó la sala |
 | `createdAt` | Timestamp | — | Fecha y hora de creación |
 | `status` | enum | `active`, `closed`, `archived` | Estado actual de la sala |
-| `helperBlockedSlots` | number[] | Ej: `[3, 4, 7, 8]` | Bloques 1–20 donde el ayudante tiene clase y NO puede dictar ayudantía. Hard constraint |
+| `helperBlockedSlots` | number[] | Ej: `[2, 7, 15]` | Celdas 1–50 (día + bloque) donde el ayudante tiene clase y NO puede dictar ayudantía. Cada número identifica una celda específica: `(fila × 5) + columna + 1`. Hard constraint |
 | `studentLimit` | number (opcional) | Ej: `100` | Límite máximo de respuestas (opcional) |
 
 **Invariantes:**
 - `code` debe ser único en el sistema
-- `helperBlockedSlots` debe contener valores entre 1 y 20
+- `helperBlockedSlots` debe contener valores entre 1 y 50
 - Solo el usuario `createdBy` puede modificar la sala
 
 **Posibles estados:**
@@ -81,7 +81,7 @@ Representa la respuesta de disponibilidad de un alumno.
 | `id` | string (UID) | Firebase Auth UID anónimo | Identificador único. **Es el `uid` anónimo del alumno**, no un id autogenerado |
 | `roomId` | string (ref) | ID de Sala | Sala a la que pertenece esta respuesta |
 | `studentName` | string | Ej: "Diego Pérez" | Nombre visible del alumno |
-| `occupiedBlocks` | number[] | Ej: `[1, 2, 5, 6, 9, 10]` | Bloques 1–20 donde el alumno tiene clase/trabajo |
+| `occupiedBlocks` | number[] | Ej: `[1, 2, 8, 13]` | Celdas 1–50 (día + bloque) donde el alumno tiene clase/trabajo. Cada número identifica una celda específica: `(fila × 5) + columna + 1` |
 | `createdByUid` | string (UID) | Firebase Auth UID anónimo | Autor de la respuesta. Igual a `id`; se persiste también como campo para poder usarlo en las Security Rules sin leer el path |
 | `createdAt` | Timestamp | — | Fecha y hora de creación |
 | `updatedAt` | Timestamp | — | Fecha y hora de última modificación |
@@ -94,7 +94,7 @@ Esta decisión resuelve tres cosas de una vez:
 - **Autorización verificable:** la Security Rule se reduce a `request.auth.uid == responseId`. Un id guardado en `localStorage` daría persistencia parecida pero el servidor no puede verificarlo, así que cualquiera podría editar la respuesta de otro.
 
 **Invariantes:**
-- `occupiedBlocks` debe contener valores entre 1 y 20 (puede estar vacío si el alumno está completamente libre)
+- `occupiedBlocks` debe contener valores entre 1 y 50 (puede estar vacío si el alumno está completamente libre)
 - `studentName` debe tener al menos 2 caracteres
 - `roomId` debe referenciar una Sala existente con status `active`
 - `id` y `createdByUid` deben ser iguales, y coincidir con el `uid` de la sesión que escribe
@@ -108,17 +108,17 @@ Representa el resultado del matching para una sala. Se calcula a partir de todas
 |---|---|---|---|
 | `roomId` | string (ref) | ID de Sala | Sala asociada |
 | `totalResponses` | number | Ej: `35` | Cantidad total de alumnos que respondieron |
-| `heatmap` | mapa (ver §2.3.1) | — | Mapa de disponibilidad por slot (100 entradas) |
+| `heatmap` | mapa (ver §2.3.1) | — | Mapa de disponibilidad por slot (50 entradas) |
 | `ranking` | array (ver §2.3.2) | — | Top 3 slots ordenados por disponibilidad descendente |
 | `lastUpdated` | Timestamp | — | Momento del último cálculo |
 
 #### 2.3.1 HeatmapEntry
 
-Cada entrada del heatmap representa la disponibilidad de un slot (día + bloque). El heatmap completo tiene 100 entradas.
+Cada entrada del heatmap representa la disponibilidad de un slot (día + bloque). El heatmap completo tiene 50 entradas.
 
 | Campo | Tipo | Valores posibles | Descripción |
 |---|---|---|---|
-| `block` | number | 1–20 | Número de bloque |
+| `block` | number | 1–50 | Número de celda día+bloque |
 | `day` | string | `Lunes`, `Martes`, `Miércoles`, `Jueves`, `Viernes` | Día de la semana |
 | `timeRange` | string | Ej: `"08:15 – 09:25"` | Horario del bloque |
 | `available` | number | Ej: `32` | Alumnos disponibles en este bloque |
@@ -134,19 +134,19 @@ Mismos campos que HeatmapEntry.
 
 ### 2.4 Bloque Horario (ScheduleBlock)
 
-Configuración estática de la matriz horaria USM. Cada ScheduleBlock representa un bloque específico en un día específico. Total: 100 combinaciones (20 bloques × 5 días). No persiste en DB, vive como constante en la aplicación.
+Configuración estática de la matriz horaria USM. Cada ScheduleBlock representa un bloque específico en un día específico. Total: 50 combinaciones (10 bloques × 5 días). No persiste en DB, vive como constante en la aplicación.
 
 | Campo | Tipo | Valores posibles | Descripción |
 |---|---|---|---|
 | `day` | string | `Lunes`, `Martes`, `Miércoles`, `Jueves`, `Viernes` | Día de la semana |
-| `blockNumber` | number | 1–20 | Identificador del par de módulos |
+| `blockNumber` | number | 1–10 | Identificador del par de módulos |
 | `displayName` | string | `"Bloque 1-2"` | Nombre visible |
 | `modules` | string | `"Módulos 1 y 2"` | Módulos USM que lo componen |
 | `startTime` | string | Ej: `"08:15"` | Hora de inicio |
 | `endTime` | string | Ej: `"09:25"` | Hora de término |
 | `isVespertine` | boolean | `true`, `false` | Indica si pertenece a la jornada vespertina |
 
-**Matriz de horarios (20 bloques, aplican igual todos los días Lunes–Viernes):**
+**Matriz de horarios (10 bloques, aplican igual todos los días Lunes–Viernes):**
 
 | Bloque | Módulos | Horario | Jornada |
 |---|---|---|---|
@@ -161,7 +161,7 @@ Configuración estática de la matriz horaria USM. Cada ScheduleBlock representa
 | 17-18 | 17 y 18 | — | Vespertina |
 | 19-20 | 19 y 20 | — | Vespertina |
 
-Combinaciones resultantes: 20 bloques × 5 días = 100 slots (`Lunes-Bloque1-2`, `Martes-Bloque9-10`, `Viernes-Bloque5-6`, etc.). El heatmap y ranking operan sobre estas combinaciones día+bloque.
+Combinaciones resultantes: 10 bloques × 5 días = 50 slots (`Lunes-Bloque1-2`, `Martes-Bloque9-10`, `Viernes-Bloque5-6`, etc.). El heatmap y ranking operan sobre estas combinaciones día+bloque.
 
 ### 2.5 Usuario (User)
 
@@ -289,7 +289,7 @@ Representa un ayudante registrado en la plataforma. Manejado por Firebase Auth.
 - Sesión anónima de Firebase Auth al ingresar (transparente para el alumno, sin pantalla de login)
 - Visualización de nombre de la sala al ingresar
 - Registro de nombre del alumno (solo nombre, no email)
-- Grilla interactiva de 20 bloques USM
+- Grilla interactiva de 10 bloques USM
 - Interacción táctil optimizada (tap para marcar/desmarcar)
 - Envío de respuesta y confirmación visual
 - Recuperación y modificación de la respuesta ya enviada
@@ -320,14 +320,14 @@ deshabilitado por defecto; si falta, el SDK devuelve `auth/operation-not-allowed
 
 **Alcance:**
 - Algoritmo de matching: cruzar respuestas con restricciones del ayudante
-- Mapa de calor: grilla de 5 días × 20 bloques = 100 slots, con código de colores
+- Mapa de calor: grilla de 5 días × 10 bloques = 50 slots, con código de colores
 - Ranking automático: top 3 slots (día + bloque) con mejor disponibilidad
 - Categorías de color (verde ≥70%, ámbar 40-69%, naranja 10-39%, rojo <10%, gris bloqueado)
 - Actualización al recibir nueva respuesta
 - Los bloques del ayudante se muestran como "bloqueados" en gris
 
 **Criterios de aceptación:**
-- Heatmap muestra los 100 slots (20 bloques × 5 días) con su color correspondiente
+- Heatmap muestra los 50 slots (10 bloques × 5 días) con su color correspondiente
 - Ranking ordena los slots por disponibilidad descendente e identifica cada uno por día + bloque
 - Bloques del ayudante aparecen como "bloqueados" en gris, con prioridad sobre cualquier porcentaje: un slot bloqueado se pinta gris aunque el 100% de los alumnos esté disponible
 - Si un alumno nuevo responde, los resultados se actualizan
@@ -441,7 +441,7 @@ RC-009 no bloquea a ningún otro RC: puede implementarse en cualquier momento po
 | **Ranking** | Lista ordenada de bloques recomendados según disponibilidad |
 | **Matching** | Algoritmo que cruza restricciones + respuestas |
 | **Código corto** | Identificador único de 3-6 caracteres para compartir |
-| **Slot** | Combinación de día + bloque (ej. `Martes-Bloque9-10`). El heatmap opera sobre 100 slots |
+| **Slot** | Combinación de día + bloque (ej. `Martes-Bloque9-10`). El heatmap opera sobre 50 slots |
 | **Sesión anónima** | Sesión de Firebase Auth sin registro. Da al alumno un `uid` verificable y persistente |
 | **Módulo USM** | Unidad mínima de 45 min de la matriz horaria USM |
 | **RC** | Requirements Charter — definición de feature a implementar |

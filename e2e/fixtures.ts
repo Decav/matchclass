@@ -46,3 +46,13 @@ export const DASHBOARD_TOTAL_RESPONSES = DASHBOARD_ACTIVE_ROOM_RESPONSES + DASHB
 export const EMPTY_HELPER_EMAIL = 'ayudante.sin-salas.e2e@matchclass.cl';
 export const EMPTY_HELPER_PASSWORD = 'Test1234!';
 export const EMPTY_HELPER_DISPLAY_NAME = 'Ayudante Sin Salas E2E';
+
+/**
+ * Cuenta dedicada a `create-room.spec.ts` (RC-009, HU-07): sin salas
+ * sembradas — el flujo feliz y el de cancelar corren sobre esta misma
+ * cuenta (ninguno de los dos depende de que sea la única sala existente),
+ * aislada del resto para no interferir con otros specs en paralelo.
+ */
+export const CREATE_ROOM_HELPER_EMAIL = 'ayudante.crear-sala.e2e@matchclass.cl';
+export const CREATE_ROOM_HELPER_PASSWORD = 'Test1234!';
+export const CREATE_ROOM_HELPER_DISPLAY_NAME = 'Ayudante Crear Sala E2E';

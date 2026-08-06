@@ -23,7 +23,9 @@ function toResponse(snapshot: QueryDocumentSnapshot<DocumentData>): Response {
     id: snapshot.id,
     roomId: String(data.roomId ?? ''),
     studentName: String(data.studentName ?? ''),
-    occupiedBlocks: blocks.map(Number).filter((b: number) => Number.isInteger(b) && b >= 1 && b <= 20),
+    // Celdas día+bloque de la grilla (10 bloques × 5 días) — corregido de
+    // 1-20 (bloque día-independiente) a 1-50 (tech-document.md §2.2, 2026-08-06).
+    occupiedBlocks: blocks.map(Number).filter((b: number) => Number.isInteger(b) && b >= 1 && b <= 50),
     createdByUid: String(data.createdByUid ?? ''),
     createdAt: toDateOrNull(data.createdAt),
     updatedAt: toDateOrNull(data.updatedAt),

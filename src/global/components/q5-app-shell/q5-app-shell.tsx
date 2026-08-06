@@ -38,6 +38,12 @@ export interface Q5AppShellProps {
   navItems?: Q5NavItem[];
   /** Slot opcional para el pie del sidebar (panel de usuario, logout, etc). */
   footer?: ReactNode;
+  /**
+   * Título mostrado en la topbar (RC-009 §10, frames "Crear Sala -
+   * Formulario"/"Confirmación"). Opcional: `/dashboard` (RC-008) no lo usa —
+   * ahí el título vive en el contenido (`Q4DashboardRooms`), no en la topbar.
+   */
+  title?: string;
 }
 
 /**
@@ -46,7 +52,7 @@ export interface Q5AppShellProps {
  *
  * Ver 12-design-system.md §4.3 / §5.
  */
-export function Q5AppShell({ children, navItems = [], footer }: Q5AppShellProps) {
+export function Q5AppShell({ children, navItems = [], footer, title }: Q5AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDark, toggleTheme } = useThemeContext();
 
@@ -132,6 +138,8 @@ export function Q5AppShell({ children, navItems = [], footer }: Q5AppShellProps)
           >
             <Menu size={22} strokeWidth={2} aria-hidden="true" />
           </button>
+
+          {title && <span className="mc-topbar__title">{title}</span>}
 
           <div className="flex-1" />
 

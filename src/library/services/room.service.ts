@@ -1,6 +1,12 @@
 import { RoomRepository } from '@library/repositories/room.repository';
 import { ResponseRepository } from '@library/repositories/response.repository';
+import { generateShortCode } from '@resources/utils/generate-short-code';
+import { RoomCodeGenerationError } from '@resources/errors/room-code-generation.error';
+import type { Room } from '@resources/entities/room.entity';
 import type { RoomWithResponseCount } from '@resources/types/room-with-response-count.type';
+
+const ROOM_CODE_LENGTH = 6;
+const MAX_CODE_ATTEMPTS = 3;
 
 /**
  * Activas primero (por `createdAt` DESC), luego el resto (`closed`/
@@ -30,5 +36,33 @@ export const RoomService = {
     }));
 
     return withCounts.sort(compareDashboardRooms);
+  },
+
+  /**
+   * Use case "CreateRoom" (RC-009 §5/§6, HU-07). Genera un código corto
+   * (`generateShortCode`, sin conocer el dominio "sala" — ese significado lo
+   * aporta este servicio) y verifica su unicidad con `findByCode` hasta 3
+   * intentos en total. Si los 3 colisionan, `RoomCodeGenerationError` (caso
+   * raro: 36⁶ combinaciones posibles).
+   */
+  createRoom: async (
+    uid: string,
+    data: Pick<Room, 'name' | 'subject' | 'section'>,
+  ): Promise<{ id: string; code: string }> => {
+    let code: string | null = null;
+
+    for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt += 1) {
+      const candidate = generateShortCode(ROOM_CODE_LENGTH);
+      const existing = await RoomRepository.findByCode(candidate);
+      if (!existing) {
+        code = candidate;
+        break;
+      }
+    }
+
+    if (!code) throw new RoomCodeGenerationError();
+
+    const { id } = await RoomRepository.create({ ...data, code, createdBy: uid });
+    return { id, code };
   },
 };

@@ -1,11 +1,3 @@
-CreateRequirementPrompt.md
-Necesito que crees un requerimiento para la siguiente funcionalidad, Tienes que seguir la estructura del archivo RC-TEMPLATE.md y segun el modulo especificado,
-se debe generar el archivo [rcxxx.md] dentro de la carpeta .claude.requirements.
-
-Requerimiento: 
-
-[
-
 # HU-08: Configurar restricciones del ayudante
 
 **Proyecto:** MatchClass
@@ -122,11 +114,3 @@ Esta informacion es privada: los alumnos nunca ven que bloques marco el ayudante
 - [ ] Los estados de error muestran mensajes claros sin caidas
 - [ ] La interfaz sigue el diseno aprobado en `matchclass_design.pen` (frame `Configurar Mis Bloques`)
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
-
-
-]
-
-Notas: revisar el archivo pencil, para revisar los diseños desktop
-
-Recuerda no implementar nada que no se haga mencion y tambien nunca aplicar cambios sin antes preguntarme, por otro lado si tienes algo que proponer, consultalo conmigo primero para poder aprobarlo o desaprobarlo.
-Limitate siempre a seguir las instrucciones de los archivos .md (CLAUDE.md y skills) y no intentes hacer cambios en archivos que no se mencionen en el requerimiento.

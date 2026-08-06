@@ -25,6 +25,9 @@ import {
   EMPTY_HELPER_EMAIL,
   EMPTY_HELPER_PASSWORD,
   EMPTY_HELPER_DISPLAY_NAME,
+  CREATE_ROOM_HELPER_EMAIL,
+  CREATE_ROOM_HELPER_PASSWORD,
+  CREATE_ROOM_HELPER_DISPLAY_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -182,5 +185,13 @@ export default async function globalSetup(): Promise<void> {
     email: EMPTY_HELPER_EMAIL,
     password: EMPTY_HELPER_PASSWORD,
     displayName: EMPTY_HELPER_DISPLAY_NAME,
+  });
+
+  // Helper dedicado a `create-room.spec.ts` (RC-009, HU-07) — sin salas
+  // sembradas: las crea el propio spec.
+  await ensureHelper(auth, db, {
+    email: CREATE_ROOM_HELPER_EMAIL,
+    password: CREATE_ROOM_HELPER_PASSWORD,
+    displayName: CREATE_ROOM_HELPER_DISPLAY_NAME,
   });
 }

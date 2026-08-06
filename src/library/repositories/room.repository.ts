@@ -1,7 +1,9 @@
 import {
+  addDoc,
   collection,
   getDocs,
   query,
+  serverTimestamp,
   where,
   limit,
   type DocumentData,
@@ -63,5 +65,23 @@ export const RoomRepository = {
   listByOwner: async (uid: string): Promise<Room[]> => {
     const snapshot = await getDocs(query(collection(db, 'rooms'), where('createdBy', '==', uid)));
     return snapshot.docs.map(toRoom);
+  },
+
+  /**
+   * Primera escritura de `rooms` (RC-009 §5/§7, HU-07). `status`,
+   * `helperBlockedSlots` y `createdAt` se fijan acá adentro — nunca vienen
+   * del caller — para que no se puedan pasar por error desde `RoomService`
+   * ni desde ningún consumidor futuro.
+   */
+  create: async (
+    data: Pick<Room, 'name' | 'subject' | 'section' | 'code' | 'createdBy'>,
+  ): Promise<{ id: string }> => {
+    const docRef = await addDoc(collection(db, 'rooms'), {
+      ...data,
+      status: 'active',
+      helperBlockedSlots: [],
+      createdAt: serverTimestamp(),
+    });
+    return { id: docRef.id };
   },
 };

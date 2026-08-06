@@ -1088,3 +1088,107 @@ body {
   gap: var(--mc-spacing-3);
   flex-shrink: 0;
 }
+
+/* ---------------------------------------------------------------------
+ * Crear sala (RC-009, HU-07). Fuente de verdad visual: matchclass_design.pen,
+ * frames "Crear Sala - Formulario" (nodeId NHbEy) / "Crear Sala -
+ * Confirmación" (nodeId r8SkH) — valores leídos con
+ * `Get(nodeId, {resolveVariables: true})`, no aproximados de una captura.
+ * ------------------------------------------------------------------- */
+
+.mc-topbar__title {
+  font-size: var(--mc-text-base);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-create-room-card {
+  width: 480px;
+  max-width: 100%;
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-lg);
+  padding: var(--mc-spacing-8);
+  display: flex;
+  flex-direction: column;
+  transition:
+    background-color var(--mc-transition-slow),
+    border-color var(--mc-transition-slow);
+}
+
+.mc-create-room-cancel-btn {
+  width: 120px;
+  height: 44px;
+  border: 1px solid var(--mc-border);
+  border-radius: 10px;
+}
+
+.mc-create-room-primary-btn {
+  height: 48px;
+  border-radius: var(--mc-radius-md);
+}
+
+.mc-create-room-dashboard-btn {
+  height: 44px;
+  border: 1px solid var(--mc-border);
+  border-radius: 10px;
+}
+
+.mc-create-room-success-icon {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: var(--mc-radius-full);
+  /* #10B9811A del frame — verde al 10%, no el `--mc-success-bg` sólido. */
+  background: color-mix(in srgb, var(--mc-success) 10%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-create-room-code-section {
+  width: 100%;
+  background: var(--mc-surface-alt);
+  border-radius: 14px;
+  padding: var(--mc-spacing-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-3);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-create-room-code-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  background: var(--mc-card);
+  border: 2px solid var(--mc-brand-primary);
+  border-radius: 10px;
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-2xl);
+  font-weight: var(--mc-font-bold);
+  letter-spacing: 4px;
+  color: var(--mc-brand-primary);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-create-room-copy-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--mc-brand-primary);
+  color: var(--mc-text-on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity var(--mc-transition-fast);
+}
+
+.mc-create-room-copy-btn:hover {
+  opacity: 0.9;
+}

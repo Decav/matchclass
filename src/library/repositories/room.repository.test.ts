@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { getDocsMock, queryMock, whereMock, limitMock, collectionMock } = vi.hoisted(() => ({
-  getDocsMock: vi.fn(),
-  queryMock: vi.fn((...args: unknown[]) => ({ __query: args })),
-  whereMock: vi.fn((...args: unknown[]) => ({ __where: args })),
-  limitMock: vi.fn((...args: unknown[]) => ({ __limit: args })),
-  collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
-}));
+const { getDocsMock, queryMock, whereMock, limitMock, collectionMock, addDocMock, serverTimestampMock } =
+  vi.hoisted(() => ({
+    getDocsMock: vi.fn(),
+    queryMock: vi.fn((...args: unknown[]) => ({ __query: args })),
+    whereMock: vi.fn((...args: unknown[]) => ({ __where: args })),
+    limitMock: vi.fn((...args: unknown[]) => ({ __limit: args })),
+    collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
+    addDocMock: vi.fn(),
+    serverTimestampMock: vi.fn(() => '__server_timestamp__'),
+  }));
 
 vi.mock('firebase/firestore', () => ({
   getDocs: getDocsMock,
@@ -14,6 +17,8 @@ vi.mock('firebase/firestore', () => ({
   where: whereMock,
   limit: limitMock,
   collection: collectionMock,
+  addDoc: addDocMock,
+  serverTimestamp: serverTimestampMock,
   // Stub: ninguna fixture de este archivo usa un Timestamp real, pero
   // `toDateOrNull` hace `instanceof Timestamp` y necesita que exista.
   Timestamp: class {},
@@ -134,5 +139,37 @@ describe('RoomRepository.listByOwner', () => {
   it('sin salas devuelve un arreglo vacío', async () => {
     getDocsMock.mockResolvedValue({ docs: [] });
     expect(await RoomRepository.listByOwner('helper-sin-salas')).toEqual([]);
+  });
+});
+
+describe('RoomRepository.create', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('fija status, helperBlockedSlots y createdAt internamente, sin recibirlos como input', async () => {
+    addDocMock.mockResolvedValue({ id: 'room-nuevo' });
+
+    const result = await RoomRepository.create({
+      name: 'Sala',
+      subject: 'Materia',
+      section: 'Secc 1',
+      code: 'ABCDEF',
+      createdBy: 'helper-1',
+    });
+
+    expect(result).toEqual({ id: 'room-nuevo' });
+    expect(addDocMock).toHaveBeenCalledTimes(1);
+    const [, payload] = addDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(payload).toEqual({
+      name: 'Sala',
+      subject: 'Materia',
+      section: 'Secc 1',
+      code: 'ABCDEF',
+      createdBy: 'helper-1',
+      status: 'active',
+      helperBlockedSlots: [],
+      createdAt: '__server_timestamp__',
+    });
   });
 });

@@ -1,0 +1,129 @@
+# RC-010: Configurar restricciones del ayudante (HU-08)
+
+> **Estado:** `draft`
+> **Módulo:** `rooms` *(épica "Gestión de Salas"; el código vive en `src/modules/home/`, mismo criterio pragmático que RC-008/009 — ver Notas)*
+> **Autor:** Diego Canelo / Claude
+> **Fecha:** 2026-08-06
+> **Aprobado por:** — pendiente
+
+---
+
+## 1. Contexto y Problema
+
+RC-009 dejó el botón "Configurar mis bloques" (pantalla de confirmación de sala creada) apuntando a un placeholder (`/salas/:roomId/bloques`). El ayudante no tiene forma de marcar sus horarios ocupados — sin eso, el matching (RC futura) no tiene ninguna restricción real que aplicar, solo las respuestas de los alumnos.
+
+## 2. Objetivo
+
+Reemplazar el placeholder por la grilla real de 10×5 bloques donde el ayudante marca sus horarios ocupados, con precarga si la sala ya tenía restricciones guardadas, y escritura de `helperBlockedSlots` en Firestore.
+
+**Modelo de datos corregido antes de este RC** (ver Notas): la grilla es de **10 bloques × 5 días = 50 celdas**, no 20×5=100 como decía una versión anterior de `tech-document.md`. `helperBlockedSlots` y `occupiedBlocks` usan la misma numeración de celda combinada día+bloque, `1–50`, con `celda = (fila × 5) + columna + 1` (columnas 0=Lunes...4=Viernes, filas 0=primer bloque...9=segundo bloque vespertino).
+
+---
+
+## 3. Entidades y Value Objects
+
+- **ScheduleBlock** (`src/resources/entities/schedule-block.entity.ts`, nueva — `tech-document.md §2.4`, diferida desde RC-001 por la contradicción de rango ya resuelta): `{ blockNumber: number; displayName: string; modules: string; startTime: string | null; endTime: string | null; isVespertine: boolean }`. Constante estática `USM_SCHEDULE_BLOCKS: ScheduleBlock[]` (10 elementos) en `src/resources/constants/usm-schedule.ts` — no persiste en Firestore.
+- **Room** (RC-003) — no se redefine. Este RC es el primero en **escribir** `helperBlockedSlots` (antes solo se creaba vacío, RC-009).
+
+No se agrega ningún VO de formulario Zod: no hay campos de texto, solo el estado de selección de la grilla (`Set<number>` en memoria).
+
+## 4. Errores de Dominio
+
+| Error | Origen | Mensaje mostrado | Escenario |
+|-------|--------|-------------------|-----------|
+| NetworkError | falla al escribir `helperBlockedSlots` | "Error al guardar. Intenta de nuevo" (texto literal de la HU, distinto del genérico "Error de conexión..." de otras RCs) | 6 |
+
+No hay escenario Gherkin para una falla de **lectura** al precargar (Escenario 2 solo prueba el caso feliz). Se resuelve así: si `RoomRepository.getById` falla, la grilla arranca vacía (mismo comportamiento que "modo creación", HU §Especificaciones) en vez de bloquear la pantalla con un estado de error no pedido.
+
+## 5. Puertos (Interfaces)
+
+- **RoomRepository** (`src/library/repositories/room.repository.ts`) — se agrega:
+  - `getById(roomId: string): Promise<Room | null>` — `getDoc(doc(db,'rooms',roomId))`, para precargar `helperBlockedSlots`
+  - `updateBlockedSlots(roomId: string, blockedSlots: number[]): Promise<void>` — `updateDoc(doc(db,'rooms',roomId), { helperBlockedSlots })`, método acotado a este campo (no un `update` genérico)
+
+- **Q3ScheduleGrid** (`src/global/components/q3-schedule-grid/`, nuevo, sin conocer dominios): grilla de toggle genérica — props `rows: { label: string; sublabel?: string }[]`, `columns: string[]`, `selected: ReadonlySet<number>`, `onToggle: (cell: number) => void`, `disabled?: boolean`. No sabe qué es "USM" ni "restricción de ayudante" — eso lo aporta quien la usa. Se construye reusable a propósito: el alumno (RC de `scheduling`, todavía sin implementar) va a necesitar la misma grilla 10×5 para marcar `occupiedBlocks`, con otra semántica de color
+
+## 6. Use Case
+
+| Use Case | Input | Output | Errores posibles |
+|----------|-------|--------|-------------------|
+| LoadRoomBlocks | roomId | `Set<number>` (celdas precargadas) | — (falla silenciosa → grilla vacía) |
+| SaveRoomBlocks | roomId, celdas seleccionadas | `void` → toast + navega a `/dashboard` | NetworkError |
+
+### LoadRoomBlocks
+1. `RoomRepository.getById(roomId)` → si existe y tiene `helperBlockedSlots`, se precargan como seleccionadas (Escenario 2); si falla o la sala no tiene restricciones, la grilla arranca vacía (Especificaciones, "modo creación")
+
+### SaveRoomBlocks
+1. El botón "Guardar cambios" solo se habilita si el `Set` actual difiere del precargado (comparación de contenido, no de referencia) (Escenario 5)
+2. Al hacer clic: `RoomRepository.updateBlockedSlots(roomId, Array.from(selected))`
+3. Éxito → toast "Cambios guardados" (nuevo componente `Q1Toast`, ver Notas) y navega a `/dashboard` (Escenario 1)
+4. Error → "Error al guardar. Intenta de nuevo", el `Set` en memoria no se toca, el botón vuelve a su estado activo (Escenario 6)
+5. "Omitir" → navega a `/dashboard` sin llamar a `updateBlockedSlots` (Escenario 3); si la sala ya tenía restricciones, quedan intactas porque nunca se escribió nada
+
+---
+
+## 7. Contrato (Firebase)
+
+| Operación | Método Firestore | Input | Output | Errores |
+|-----------|-------------------|-------|--------|---------|
+| Leer sala (precarga) | `getDoc(doc(db,'rooms',roomId))` | roomId | `Room \| null` | `unavailable` (se ignora, grilla vacía) |
+| Guardar restricciones | `updateDoc(doc(db,'rooms',roomId), { helperBlockedSlots })` | roomId, `number[]` | `void` | `unavailable`, `permission-denied` |
+
+---
+
+## 8. Modelo de Datos
+
+`rooms.helperBlockedSlots` ya existe (RC-003, creado vacío por RC-009). Este RC es el primero en escribirle contenido real. Sin cambios de esquema — solo el rango válido documentado cambia de `1–20` a `1–50` (ver Notas, ya corregido en `tech-document.md` y en `response.repository.ts` antes de este RC).
+
+---
+
+## 9. Criterios de Aceptación
+
+### Componente / Hook (Vitest + Testing Library)
+- [ ] `Q3ScheduleGrid`: clic en una celda libre la marca ocupada; clic de nuevo la vuelve a libre (Escenario 4)
+- [ ] Página de bloques: con `helperBlockedSlots: [2,4,6,8]` precargados, esas 4 celdas aparecen marcadas y el resto libres (Escenario 2)
+- [ ] Página de bloques: sin modificar ninguna celda, "Guardar cambios" permanece deshabilitado (Escenario 5)
+- [ ] Página de bloques: al marcar y guardar, botón con spinner, se llama `updateBlockedSlots`, se muestra el toast y navega a `/dashboard` (Escenario 1)
+- [ ] Página de bloques: "Omitir" navega a `/dashboard` sin llamar a `updateBlockedSlots` (Escenario 3)
+- [ ] Página de bloques: `NetworkError` → "Error al guardar. Intenta de nuevo", la selección local no se pierde (Escenario 6)
+- [ ] `RoomRepository.getById` / `updateBlockedSlots`: sin `any`
+
+### E2E (Playwright)
+- [ ] Marcar bloques, guardar, y confirmar (releyendo el documento sembrado) que `helperBlockedSlots` quedó actualizado (Escenario 1)
+- [ ] Abrir la pantalla de una sala con restricciones ya sembradas → las celdas correctas aparecen marcadas (Escenario 2)
+
+### Definition of Done
+- [ ] `tsc --noEmit` sin errores
+- [ ] Lint sin errores
+- [ ] `npm run build` exitoso
+- [ ] Ningún `any` en el código
+- [ ] Ningún componente importa `firebase/*` (solo `src/library/repositories/*`)
+- [ ] La interfaz replica el frame `Configurar Mis Bloques` (`N2rqv`) de `matchclass_design.pen`, leído con `Get(...,{resolveVariables:true})` — colores, tamaños y paddings exactos, no aproximados
+- [ ] La HU cumple los 6 escenarios de `docs/hu-08-restricciones-ayudante.md`, validados por QA
+
+---
+
+## 10. Notas
+
+**Modelo de grilla corregido antes de escribir este RC.** Al leer HU-08 encontré un choque real entre `tech-document.md` (20 bloques × 5 días = 100, `helperBlockedSlots`/`occupiedBlocks` documentados como 1–20 día-independiente, y ya hardcodeado así en `response.repository.ts`) y esta HU (10 filas × 5 columnas = 50 celdas, 1–50 día+bloque combinado). Se lo consulté a Diego: confirmó que el modelo correcto es 1–50 y ya había corregido `tech-document.md` él mismo. Antes de escribir este RC dejé:
+- `tech-document.md` con las menciones residuales que quedaron en 20/100/1-20 corregidas a 10/50/1-50 (quedaron sueltas en la intro §1, la tabla de `ScheduleBlock` §2.4 y el alcance de RC-006 del propio documento — la tabla de horarios en sí nunca cambió, siempre tuvo 10 filas)
+- `response.repository.ts`: el clamp de `occupiedBlocks` de `b <= 20` a `b <= 50`, y su test actualizado
+- Verificado con `Get('N2rqv', {resolveVariables:true})` que el frame real de Pencil (bloques 1 a 50, fila por fila) coincide exactamente con la fórmula `celda = (fila × 5) + columna + 1` que dio Diego
+
+**Toast nuevo (`Q1Toast`).** Ningún RC anterior necesitó una confirmación tipo toast (los demás usan `Q2Alert`, un banner inline permanente). Se agrega un átomo simple en `global/` (aparece, se autodescarta) — no se usa `primereact/toast`: esta versión de PrimeReact no aplica ningún CSS a sus componentes sin un theme que este proyecto no tiene configurado (mismo motivo por el que `Q1Button`/`Q2InputField` ya son elementos nativos con clases `.mc-*`, no wrappers de PrimeReact — ver RC-008 §11.3).
+
+**`Q3ScheduleGrid` reusable a propósito.** El alumno va a necesitar la misma grilla 10×5 para `occupiedBlocks` (RC de `scheduling`, todavía sin implementar) — con otra semántica de color (libre/ocupado vs. disponible/no-disponible) pero la misma estructura. Se construye ahora en `global/` sin conocer "restricciones de ayudante" para no duplicar la grilla completa cuando llegue esa RC.
+
+**Ancho de celda: `fill_container` (fluido), no 88px fijo.** La HU dice "celdas de 88x52px", pero el frame real (`Block 1 Free`, etc.) usa `width: fill_container` — el ancho real depende de cuánto espacio quede disponible, no es un valor fijo. Se prioriza el frame real (fuente de verdad de fidelidad visual) sobre el texto de la HU en este detalle puntual; la altura sí es fija en 52px, eso coincide.
+
+**Sin botón nuevo en la card del dashboard.** HU-08 dice que se llega a esta pantalla "desde la card de una sala existente en el dashboard", pero `Q3RoomCard` (RC-008) solo tiene "Abrir" (→ `/salas/:roomId`, placeholder) y "Copiar". No se agrega una acción "Configurar bloques" a la card en este RC — ninguno de los 6 escenarios Gherkin depende de un botón específico en la card, solo de que la pantalla funcione correctamente para un `roomId` existente. Cuando `/salas/:roomId` deje de ser placeholder, ahí es donde tiene más sentido ese enlace.
+
+**Fuera de alcance:** matching/heatmap (usa esta info pero es RC aparte), gestión real de `/salas/:roomId` (sigue placeholder), grilla del alumno (`occupiedBlocks`, módulo `scheduling`), ajustes mobile.
+
+---
+
+## Historial
+
+| Fecha | Acción | Autor |
+|-------|--------|-------|
+| 2026-08-06 | Creación (draft, pendiente de aprobación) | Diego Canelo / Claude |

@@ -44,7 +44,7 @@ describe('ResponseRepository', () => {
         data: () => ({
           roomId: 'room-1',
           studentName: 'Ana',
-          occupiedBlocks: [1, 25, 'x', 5],
+          occupiedBlocks: [1, 25, 'x', 5, 51],
           createdByUid: 'uid-1',
         }),
       });
@@ -55,7 +55,7 @@ describe('ResponseRepository', () => {
         id: 'uid-1',
         roomId: 'room-1',
         studentName: 'Ana',
-        occupiedBlocks: [1, 5],
+        occupiedBlocks: [1, 25, 5],
         createdByUid: 'uid-1',
         createdAt: null,
         updatedAt: null,

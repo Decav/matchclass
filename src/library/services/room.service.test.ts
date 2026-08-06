@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Room } from '@resources/entities/room.entity';
 
 vi.mock('@library/repositories/room.repository', () => ({
-  RoomRepository: { listByOwner: vi.fn() },
+  RoomRepository: { listByOwner: vi.fn(), findByCode: vi.fn(), create: vi.fn() },
 }));
 vi.mock('@library/repositories/response.repository', () => ({
   ResponseRepository: { countByRoom: vi.fn() },
@@ -10,6 +10,7 @@ vi.mock('@library/repositories/response.repository', () => ({
 
 import { RoomRepository } from '@library/repositories/room.repository';
 import { ResponseRepository } from '@library/repositories/response.repository';
+import { RoomCodeGenerationError } from '@resources/errors/room-code-generation.error';
 import { RoomService } from './room.service';
 
 function makeRoom(overrides: Partial<Room>): Room {
@@ -74,5 +75,49 @@ describe('RoomService.getDashboardRooms', () => {
 
     expect(result).toEqual([]);
     expect(ResponseRepository.countByRoom).not.toHaveBeenCalled();
+  });
+});
+
+describe('RoomService.createRoom', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const formData = { name: 'Sala', subject: 'Materia', section: 'Secc 1' };
+
+  it('genera un código de 6 caracteres en mayúsculas y crea la sala en el primer intento', async () => {
+    vi.mocked(RoomRepository.findByCode).mockResolvedValue(null);
+    vi.mocked(RoomRepository.create).mockResolvedValue({ id: 'room-nuevo' });
+
+    const result = await RoomService.createRoom('helper-1', formData);
+
+    expect(result.id).toBe('room-nuevo');
+    expect(result.code).toMatch(/^[A-Z0-9]{6}$/);
+    expect(RoomRepository.findByCode).toHaveBeenCalledTimes(1);
+    expect(RoomRepository.create).toHaveBeenCalledWith({
+      ...formData,
+      code: result.code,
+      createdBy: 'helper-1',
+    });
+  });
+
+  it('reintenta cuando el primer código generado ya existe (colisión)', async () => {
+    vi.mocked(RoomRepository.findByCode).mockResolvedValueOnce(makeRoom({})).mockResolvedValueOnce(null);
+    vi.mocked(RoomRepository.create).mockResolvedValue({ id: 'room-nuevo' });
+
+    const result = await RoomService.createRoom('helper-1', formData);
+
+    expect(RoomRepository.findByCode).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('room-nuevo');
+  });
+
+  it('lanza RoomCodeGenerationError si los 3 intentos colisionan', async () => {
+    vi.mocked(RoomRepository.findByCode).mockResolvedValue(makeRoom({}));
+
+    await expect(RoomService.createRoom('helper-1', formData)).rejects.toBeInstanceOf(
+      RoomCodeGenerationError,
+    );
+    expect(RoomRepository.findByCode).toHaveBeenCalledTimes(3);
+    expect(RoomRepository.create).not.toHaveBeenCalled();
   });
 });
