@@ -48,6 +48,25 @@ describe('Q4RoomCreatedConfirmation', () => {
     await waitFor(() => expect(writeTextMock).toHaveBeenCalledWith('EDS101'));
   });
 
+  it('"Copiar enlace de la sala" copia el enlace con el código (RC-011 Escenario 3)', async () => {
+    renderConfirmation();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace de la sala' }));
+
+    await waitFor(() =>
+      expect(writeTextMock).toHaveBeenCalledWith(`${window.location.origin}/acceso?tipo=alumno&codigo=EDS101`),
+    );
+  });
+
+  it('sin Clipboard API, "Copiar código de la sala" selecciona el código (Escenario 4)', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+    renderConfirmation();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar código de la sala' }));
+
+    await waitFor(() => expect(window.getSelection()?.toString()).toBe('EDS101'));
+  });
+
   it('"Ir al dashboard" navega a /dashboard (Escenario 5)', async () => {
     renderConfirmation();
 

@@ -56,3 +56,21 @@ export const EMPTY_HELPER_DISPLAY_NAME = 'Ayudante Sin Salas E2E';
 export const CREATE_ROOM_HELPER_EMAIL = 'ayudante.crear-sala.e2e@matchclass.cl';
 export const CREATE_ROOM_HELPER_PASSWORD = 'Test1234!';
 export const CREATE_ROOM_HELPER_DISPLAY_NAME = 'Ayudante Crear Sala E2E';
+
+/**
+ * Cuenta dedicada a `room-blocks.spec.ts` (RC-010, HU-08), aislada del resto.
+ * Escenario 1 (marcar y guardar) crea su propia sala nueva vía el flujo real
+ * de `/salas/nueva` — así siempre arranca con `helperBlockedSlots: []`, sin
+ * depender de un doc sembrado que un run anterior pudo haber dejado con
+ * bloques ya marcados. Escenario 2 (precarga) sí usa una sala sembrada con
+ * un id fijo (`ROOM_BLOCKS_PRELOADED_ROOM_ID`) — ese test solo lee, nunca
+ * escribe, así que es seguro reutilizarla entre corridas.
+ */
+export const ROOM_BLOCKS_HELPER_EMAIL = 'ayudante.bloques.e2e@matchclass.cl';
+export const ROOM_BLOCKS_HELPER_PASSWORD = 'Test1234!';
+export const ROOM_BLOCKS_HELPER_DISPLAY_NAME = 'Ayudante Bloques E2E';
+
+export const ROOM_BLOCKS_PRELOADED_ROOM_ID = 'e2e-room-blocks-preloaded';
+export const ROOM_BLOCKS_PRELOADED_ROOM_CODE = 'BLK002';
+export const ROOM_BLOCKS_PRELOADED_ROOM_NAME = 'Cálculo I · Secc 2';
+export const ROOM_BLOCKS_PRELOADED_SLOTS = [2, 4, 6, 8];

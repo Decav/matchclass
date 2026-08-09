@@ -9,6 +9,20 @@ async function fillRoomCode(page: Page, code: string) {
 }
 
 test.describe('Tab Alumno', () => {
+  test('enlace con ?tipo=alumno&codigo= precarga el código en las celdas (RC-011 Escenario 3)', async ({
+    page,
+  }) => {
+    await page.goto(`/acceso?tipo=alumno&codigo=${ACTIVE_ROOM_CODE}`);
+
+    await expect(page.getByRole('tab', { name: 'Alumno' })).toHaveAttribute('aria-selected', 'true');
+
+    const cells = page.locator('.mc-code-cell');
+    for (let i = 0; i < ACTIVE_ROOM_CODE.length; i += 1) {
+      await expect(cells.nth(i)).toHaveValue(ACTIVE_ROOM_CODE[i] ?? '');
+    }
+    await expect(page.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
+  });
+
   test('código válido de sala nueva -> nombre -> grilla (Escenarios 9, 14)', async ({ page }) => {
     await page.goto('/acceso?tipo=alumno');
 

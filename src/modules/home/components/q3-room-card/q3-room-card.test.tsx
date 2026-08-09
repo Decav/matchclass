@@ -71,4 +71,25 @@ describe('Q3RoomCard', () => {
     await waitFor(() => expect(writeTextMock).toHaveBeenCalledWith('XYZ999'));
     await waitFor(() => expect(screen.getByRole('button', { name: '¡Copiado!' })).toBeInTheDocument());
   });
+
+  it('"Copiar enlace" copia el enlace con el código y muestra confirmación (RC-011 Escenario 3)', async () => {
+    renderCard(makeRoom({ code: 'XYZ999' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }));
+
+    await waitFor(() =>
+      expect(writeTextMock).toHaveBeenCalledWith(`${window.location.origin}/acceso?tipo=alumno&codigo=XYZ999`),
+    );
+    await waitFor(() => expect(screen.getAllByRole('button', { name: '¡Copiado!' })).toHaveLength(1));
+  });
+
+  it('sin Clipboard API, "Copiar" selecciona el código en vez de copiarlo (Escenario 4)', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });
+    renderCard(makeRoom({ code: 'XYZ999' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar' }));
+
+    await waitFor(() => expect(window.getSelection()?.toString()).toBe('XYZ999'));
+    expect(screen.queryByRole('button', { name: '¡Copiado!' })).not.toBeInTheDocument();
+  });
 });

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Copy, Users } from 'lucide-react';
+import { Check, Copy, Link as LinkIcon, Users } from 'lucide-react';
 import { Q1StatusBadge } from '@global/components/q1-status-badge';
+import { copyToClipboard, selectElementText } from '@global/utils/copy-to-clipboard';
+import { buildAlumnoAccessLink } from '@resources/utils/build-alumno-access-link';
 import type { RoomWithResponseCount } from '@resources/types/room-with-response-count.type';
 
 export interface Q3RoomCardProps {
   room: RoomWithResponseCount;
 }
+
+type CopiedField = 'code' | 'link' | null;
 
 const COPIED_LABEL_DURATION_MS = 1500;
 
@@ -16,25 +20,36 @@ const COPIED_LABEL_DURATION_MS = 1500;
  * copia el código al portapapeles con una confirmación visual breve en el
  * propio botón — no depende de ninguna pantalla futura.
  *
+ * "Copiar enlace" (RC-011, HU-09 Escenario 3) copia
+ * `buildAlumnoAccessLink(room.code)` con el mismo patrón de confirmación.
+ * Ambos botones pasan por `copyToClipboard`: si el navegador no soporta la
+ * Clipboard API, en vez de "¡Copiado!" seleccionan visualmente el código en
+ * pantalla (`selectElementText`, Escenario 4) para que el usuario lo copie
+ * manualmente — nunca el enlace, que no se muestra en la card.
+ *
  * `studentLimit` opcional (RC-008 §10, decisión ya tomada): con límite se
  * muestra "responseCount/studentLimit" + barra de progreso (tope 100%); sin
  * límite, solo "responseCount alumnos respondieron", sin barra.
  */
 export function Q3RoomCard({ room }: Q3RoomCardProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<CopiedField>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codeRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
-  const handleCopy = () => {
-    void navigator.clipboard.writeText(room.code).then(() => {
-      setCopied(true);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopied(false), COPIED_LABEL_DURATION_MS);
-    });
-  };
+  async function handleCopy(field: 'code' | 'link', text: string) {
+    const copied = await copyToClipboard(text);
+    if (!copied) {
+      if (codeRef.current) selectElementText(codeRef.current);
+      return;
+    }
+    setCopiedField(field);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setCopiedField(null), COPIED_LABEL_DURATION_MS);
+  }
 
   const responsesLabel =
     room.studentLimit !== undefined
@@ -59,7 +74,9 @@ export function Q3RoomCard({ room }: Q3RoomCardProps) {
         <span className="text-xs" style={{ color: 'var(--mc-text-tertiary)' }}>
           Código
         </span>
-        <span className="mc-room-card__code-box">{room.code}</span>
+        <span ref={codeRef} className="mc-room-card__code-box">
+          {room.code}
+        </span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -89,14 +106,30 @@ export function Q3RoomCard({ room }: Q3RoomCardProps) {
         <button
           type="button"
           className="mc-room-card__action mc-room-card__action--secondary"
-          onClick={handleCopy}
+          onClick={() => {
+            void handleCopy('code', room.code);
+          }}
         >
-          {copied ? (
+          {copiedField === 'code' ? (
             <Check size={14} strokeWidth={2} aria-hidden="true" />
           ) : (
             <Copy size={14} strokeWidth={2} aria-hidden="true" />
           )}
-          {copied ? '¡Copiado!' : 'Copiar'}
+          {copiedField === 'code' ? '¡Copiado!' : 'Copiar'}
+        </button>
+        <button
+          type="button"
+          className="mc-room-card__action mc-room-card__action--secondary"
+          onClick={() => {
+            void handleCopy('link', buildAlumnoAccessLink(room.code));
+          }}
+        >
+          {copiedField === 'link' ? (
+            <Check size={14} strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <LinkIcon size={14} strokeWidth={2} aria-hidden="true" />
+          )}
+          {copiedField === 'link' ? '¡Copiado!' : 'Copiar enlace'}
         </button>
       </div>
     </div>

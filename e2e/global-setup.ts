@@ -28,6 +28,13 @@ import {
   CREATE_ROOM_HELPER_EMAIL,
   CREATE_ROOM_HELPER_PASSWORD,
   CREATE_ROOM_HELPER_DISPLAY_NAME,
+  ROOM_BLOCKS_HELPER_EMAIL,
+  ROOM_BLOCKS_HELPER_PASSWORD,
+  ROOM_BLOCKS_HELPER_DISPLAY_NAME,
+  ROOM_BLOCKS_PRELOADED_ROOM_ID,
+  ROOM_BLOCKS_PRELOADED_ROOM_CODE,
+  ROOM_BLOCKS_PRELOADED_ROOM_NAME,
+  ROOM_BLOCKS_PRELOADED_SLOTS,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -51,23 +58,34 @@ async function ensureHelper(
 }
 
 interface RoomSeed {
+  /**
+   * Id de documento fijo, en vez de dejar que `.add()` genere uno nuevo cada
+   * run (RC-010 §11 — `room-blocks.spec.ts` navega directo a
+   * `/salas/:roomId/bloques`, sin pasar por un código de sala, así que
+   * necesita un id estable y conocido de antemano).
+   */
+  id?: string;
   code: string;
   name: string;
   status: 'active' | 'closed';
   createdBy: string;
   studentLimit?: number;
+  helperBlockedSlots?: number[];
 }
 
 async function ensureRoom(db: Firestore, room: RoomSeed): Promise<string> {
-  const snapshot = await db.collection('rooms').where('code', '==', room.code).limit(1).get();
+  const ref = room.id
+    ? db.collection('rooms').doc(room.id)
+    : (await db.collection('rooms').where('code', '==', room.code).limit(1).get()).docs[0]?.ref;
 
-  if (!snapshot.empty) {
-    const doc = snapshot.docs[0];
-    if (!doc) throw new Error(`unreachable: snapshot no vacío sin documentos (${room.code})`);
-    if (room.studentLimit !== undefined) {
-      await doc.ref.set({ studentLimit: room.studentLimit }, { merge: true });
+  if (ref) {
+    const existing = await ref.get();
+    if (existing.exists) {
+      if (room.studentLimit !== undefined) {
+        await ref.set({ studentLimit: room.studentLimit }, { merge: true });
+      }
+      return ref.id;
     }
-    return doc.id;
   }
 
   const data: Record<string, unknown> = {
@@ -78,12 +96,17 @@ async function ensureRoom(db: Firestore, room: RoomSeed): Promise<string> {
     createdBy: room.createdBy,
     createdAt: new Date(),
     status: room.status,
-    helperBlockedSlots: [],
+    helperBlockedSlots: room.helperBlockedSlots ?? [],
   };
   if (room.studentLimit !== undefined) data.studentLimit = room.studentLimit;
 
-  const ref = await db.collection('rooms').add(data);
-  return ref.id;
+  if (room.id) {
+    await db.collection('rooms').doc(room.id).set(data);
+    return room.id;
+  }
+
+  const added = await db.collection('rooms').add(data);
+  return added.id;
 }
 
 /** Siembra hasta `count` respuestas fake si la subcolección todavía está vacía — idempotente entre corridas. */
@@ -193,5 +216,24 @@ export default async function globalSetup(): Promise<void> {
     email: CREATE_ROOM_HELPER_EMAIL,
     password: CREATE_ROOM_HELPER_PASSWORD,
     displayName: CREATE_ROOM_HELPER_DISPLAY_NAME,
+  });
+
+  // Helper dedicado a `room-blocks.spec.ts` (RC-010, HU-08). El Escenario 1
+  // (marcar y guardar) crea su propia sala nueva vía `/salas/nueva` — no se
+  // siembra nada para ese caso. El Escenario 2 (precarga) sí necesita una
+  // sala ya existente con `helperBlockedSlots` guardados, con id fijo para
+  // poder navegar directo a `/salas/:roomId/bloques` sin pasar por código.
+  const roomBlocksHelper = await ensureHelper(auth, db, {
+    email: ROOM_BLOCKS_HELPER_EMAIL,
+    password: ROOM_BLOCKS_HELPER_PASSWORD,
+    displayName: ROOM_BLOCKS_HELPER_DISPLAY_NAME,
+  });
+  await ensureRoom(db, {
+    id: ROOM_BLOCKS_PRELOADED_ROOM_ID,
+    code: ROOM_BLOCKS_PRELOADED_ROOM_CODE,
+    name: ROOM_BLOCKS_PRELOADED_ROOM_NAME,
+    status: 'active',
+    createdBy: roomBlocksHelper.uid,
+    helperBlockedSlots: ROOM_BLOCKS_PRELOADED_SLOTS,
   });
 }

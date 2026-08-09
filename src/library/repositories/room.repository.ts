@@ -1,9 +1,12 @@
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
   serverTimestamp,
+  updateDoc,
   where,
   limit,
   type DocumentData,
@@ -83,5 +86,26 @@ export const RoomRepository = {
       createdAt: serverTimestamp(),
     });
     return { id: docRef.id };
+  },
+
+  /**
+   * Precarga de `/salas/:roomId/bloques` (RC-010 §5/§6, HU-08 Escenario 2).
+   * `null` si el documento no existe — el caller (`LoadRoomBlocks`) lo trata
+   * igual que una lectura fallida: la grilla arranca vacía, sin bloquear la
+   * pantalla con un estado de error que ningún escenario Gherkin pide.
+   */
+  getById: async (roomId: string): Promise<Room | null> => {
+    const snapshot = await getDoc(doc(db, 'rooms', roomId));
+    return snapshot.exists() ? toRoom(snapshot) : null;
+  },
+
+  /**
+   * Escritura de `SaveRoomBlocks` (RC-010 §5/§6). Acotada a un solo campo
+   * (`updateDoc` con un objeto de un campo) a propósito, no un `update`
+   * genérico — este repositorio no expone una forma de pisar el resto del
+   * documento de la sala por error.
+   */
+  updateBlockedSlots: async (roomId: string, blockedSlots: number[]): Promise<void> => {
+    await updateDoc(doc(db, 'rooms', roomId), { helperBlockedSlots: blockedSlots });
   },
 };

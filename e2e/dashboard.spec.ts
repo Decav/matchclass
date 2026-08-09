@@ -36,6 +36,36 @@ function kpiValue(page: Page, label: string) {
   return page.locator('.mc-kpi-card', { hasText: label }).locator('.mc-kpi-card__value');
 }
 
+/**
+ * RC-011 (HU-09 Escenario 3): en vez de depender de los permisos reales de
+ * `clipboard-read`/`clipboard-write` (frágil en Chromium headless — ver
+ * `rc011.md` §10), se reemplaza `navigator.clipboard.writeText` por un stub
+ * que guarda el argumento en `window.__copiedText`, leído luego con
+ * `page.evaluate`. Ambos se pasan como `string` (no como función con
+ * closures): el código corre en el navegador, no en Node, y
+ * `tsconfig.node.json` (bajo el que se type-checkea `e2e/**`) no incluye la
+ * lib `DOM` — referenciar `window`/`navigator` como identificadores TS ahí
+ * no resolvería tipos.
+ */
+async function stubClipboard(page: Page): Promise<void> {
+  await page.addInitScript(`
+    window.__copiedText = null;
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: function (text) {
+          window.__copiedText = text;
+          return Promise.resolve();
+        },
+      },
+    });
+  `);
+}
+
+async function readCopiedText(page: Page): Promise<string | null> {
+  return page.evaluate<string | null>('window.__copiedText');
+}
+
 test.describe('Dashboard del ayudante', () => {
   test('con salas sembradas muestra KPIs reales, salas activas y pasadas (Escenario 1)', async ({ page }) => {
     await login(page, DASHBOARD_HELPER_EMAIL, DASHBOARD_HELPER_PASSWORD);
@@ -64,6 +94,20 @@ test.describe('Dashboard del ayudante', () => {
     // Sala pasada: compacta, con badge "Cerrada".
     await expect(page.getByText(DASHBOARD_CLOSED_ROOM_NAME)).toBeVisible();
     await expect(page.getByText('Cerrada')).toBeVisible();
+  });
+
+  test('"Copiar enlace" en la card copia un enlace con ?tipo=alumno&codigo= (RC-011 Escenario 3)', async ({
+    page,
+  }) => {
+    await stubClipboard(page);
+    await login(page, DASHBOARD_HELPER_EMAIL, DASHBOARD_HELPER_PASSWORD);
+
+    const card = page.locator('.mc-room-card', { hasText: DASHBOARD_ACTIVE_ROOM_NAME });
+    await card.getByRole('button', { name: 'Copiar enlace' }).click();
+
+    const copiedText = await readCopiedText(page);
+    expect(copiedText).toContain('?tipo=alumno&codigo=');
+    expect(copiedText).toContain(DASHBOARD_ACTIVE_ROOM_CODE);
   });
 
   test('sin salas muestra el empty state "Aún no tienes salas" (Escenario 2)', async ({ page }) => {

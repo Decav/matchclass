@@ -14,6 +14,8 @@ import {
 
 export interface Q4RoomCodeFormProps {
   onValidated: (result: ValidateRoomCodeResult) => void;
+  /** Código inicial (RC-011, HU-09 Escenario 3), p. ej. desde `?codigo=` de un enlace compartido. */
+  initialCode?: string;
 }
 
 const CODE_LENGTH = 6;
@@ -21,13 +23,13 @@ const CODE_LENGTH = 6;
 /**
  * Formulario del tab Alumno — paso código (HU-01 Escenarios 9-13).
  */
-export function Q4RoomCodeForm({ onValidated }: Q4RoomCodeFormProps) {
+export function Q4RoomCodeForm({ onValidated, initialCode = '' }: Q4RoomCodeFormProps) {
   const mutation = useValidateRoomCodeMutation();
   const { message: networkMessage } = useFirebaseError(mutation.error);
 
   const { control, handleSubmit } = useForm<RoomCodeFormValues>({
     resolver: zodResolver(roomCodeSchema),
-    defaultValues: { code: '' },
+    defaultValues: { code: initialCode },
   });
 
   const code = useWatch({ control, name: 'code' });

@@ -29,6 +29,11 @@
      invierte a blanco en dark mode: sobre `--mc-card` (navy en dark) un
      tinte navy sería invisible. */
   --mc-brand-primary-bg: rgb(27 42 74 / 8%);
+  /* Tinte navy 5% (Q3ScheduleGrid header de día, nota de privacidad —
+     RC-010 §6, frame N2rqv exacto `#1B2A4A0D`). Token separado de
+     `--mc-brand-primary-bg` (8%): mismo criterio de inversión en dark mode,
+     pero una opacidad distinta que no hay que confundir con esa otra. */
+  --mc-schedule-header-bg: rgb(27 42 74 / 5%);
 
   /* ---------------------------------------------------------------------
    * 3. Colores — Neutrales (fuente de verdad de texto/borde semánticos)
@@ -288,6 +293,7 @@
   --mc-accent-text: #f5d08a;
 
   --mc-brand-primary-bg: rgb(255 255 255 / 8%);
+  --mc-schedule-header-bg: rgb(255 255 255 / 5%);
 
   /* Grilla de bloques: el ocupado mantiene el navy pero se distingue por el
    * borde dorado — casi se funde con el fondo sin él, no quitarlo. */
@@ -1191,4 +1197,163 @@ body {
 
 .mc-create-room-copy-btn:hover {
   opacity: 0.9;
+}
+
+/* ---------------------------------------------------------------------
+ * Grilla de bloques horarios (Q3ScheduleGrid) — RC-010 §6, frame
+ * "Configurar Mis Bloques" (N2rqv). Genérica: no hay clases separadas para
+ * "restricción de ayudante" vs. "disponibilidad de alumno" — ese
+ * significado lo aporta la página que la usa (leyenda, nota de privacidad).
+ * ------------------------------------------------------------------- */
+
+.mc-schedule-grid {
+  background: var(--mc-card);
+  border-radius: var(--mc-radius-lg);
+  padding: var(--mc-spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-2);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-schedule-grid__row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.mc-schedule-header-cell {
+  flex-shrink: 0;
+  width: 80px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mc-surface-alt);
+  border-radius: var(--mc-radius-sm);
+  font-size: 11px;
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-tertiary);
+}
+
+.mc-schedule-day-header {
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mc-schedule-header-bg);
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-text-xs);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-schedule-time-col {
+  flex-shrink: 0;
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--mc-font-mono);
+  font-size: 11px;
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-secondary);
+}
+
+.mc-schedule-cell {
+  flex: 1;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--mc-border);
+  background: var(--mc-grid-resting);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background-color var(--mc-transition-fast),
+    border-color var(--mc-transition-fast);
+}
+
+.mc-schedule-cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.mc-schedule-cell--occupied {
+  background: var(--mc-grid-occupied);
+  border-color: transparent;
+}
+
+.mc-schedule-cell__icon {
+  color: rgb(255 255 255 / 40%);
+}
+
+.mc-schedule-legend-swatch {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--mc-radius-xs);
+  border: 1px solid var(--mc-border);
+  background: var(--mc-grid-resting);
+}
+
+.mc-schedule-legend-swatch--occupied {
+  border-color: transparent;
+  background: var(--mc-grid-occupied);
+}
+
+.mc-schedule-privacy-note {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  background: var(--mc-schedule-header-bg);
+  border-radius: 10px;
+  padding: var(--mc-spacing-3) var(--mc-spacing-4);
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-secondary);
+}
+
+.mc-schedule-privacy-note svg {
+  flex-shrink: 0;
+  color: var(--mc-text-tertiary);
+}
+
+.mc-room-blocks-skip-btn {
+  height: 44px;
+  border: 1px solid var(--mc-border);
+  border-radius: 10px;
+}
+
+/* ---------------------------------------------------------------------
+ * Toast (Q1Toast) — primer componente de este tipo, RC-010 §10: los demás
+ * flujos usan `Q2Alert` (banner inline permanente).
+ * ------------------------------------------------------------------- */
+
+.mc-toast {
+  position: fixed;
+  bottom: var(--mc-spacing-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--mc-z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  padding: var(--mc-spacing-3) var(--mc-spacing-5);
+  background: var(--mc-success-bg);
+  border: 1px solid var(--mc-success-border);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-lg);
+  color: var(--mc-success-text);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-semibold);
+  animation: mc-fade-in var(--mc-transition-slow);
+}
+
+.mc-toast svg {
+  flex-shrink: 0;
+  color: var(--mc-success);
 }

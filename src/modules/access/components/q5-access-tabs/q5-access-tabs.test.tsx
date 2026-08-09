@@ -44,6 +44,14 @@ describe('Q5AccessTabs', () => {
     expect(screen.queryByLabelText('Email')).not.toBeVisible();
   });
 
+  it('con ?tipo=alumno&codigo=EDS101: el tab Alumno arranca con el código precargado (RC-011 Escenario 3)', () => {
+    renderTabs('/acceso?tipo=alumno&codigo=EDS101');
+
+    expect(screen.getByRole('tab', { name: 'Alumno' })).toHaveAttribute('aria-selected', 'true');
+    const cells = screen.getAllByRole('textbox');
+    expect(cells.map((cell) => (cell as HTMLInputElement).value).join('')).toBe('EDS101');
+  });
+
   it('cambiar de tab y volver conserva lo escrito en el login (Escenario 8)', async () => {
     renderTabs('/acceso');
 

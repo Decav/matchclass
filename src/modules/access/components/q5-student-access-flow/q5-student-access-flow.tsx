@@ -4,12 +4,17 @@ import { Q4RoomCodeForm } from '../q4-room-code-form/q4-room-code-form';
 import { Q4StudentNameForm } from '../q4-student-name-form/q4-student-name-form';
 import type { ValidateRoomCodeResult } from '../../core/hooks/use-validate-room-code-mutation';
 
+export interface Q5StudentAccessFlowProps {
+  /** Código a precargar en el paso 1, leído de `?codigo=` (RC-011, HU-09 Escenario 3). */
+  initialCode?: string;
+}
+
 /**
  * Controla el flujo de dos pasos del tab Alumno: código → nombre. Si el
  * alumno ya tiene una respuesta previa en la sala, salta directo a la grilla
  * sin pedir nombre (HU-01 Escenario 16).
  */
-export function Q5StudentAccessFlow() {
+export function Q5StudentAccessFlow({ initialCode = '' }: Q5StudentAccessFlowProps) {
   const [validated, setValidated] = useState<ValidateRoomCodeResult | null>(null);
   const navigate = useNavigate();
 
@@ -31,5 +36,5 @@ export function Q5StudentAccessFlow() {
     );
   }
 
-  return <Q4RoomCodeForm onValidated={handleValidated} />;
+  return <Q4RoomCodeForm onValidated={handleValidated} initialCode={initialCode} />;
 }

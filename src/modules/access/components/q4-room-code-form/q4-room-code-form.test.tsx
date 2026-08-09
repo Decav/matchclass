@@ -32,11 +32,11 @@ const mockRoom: Room = {
   helperBlockedSlots: [],
 };
 
-function renderForm(onValidated = vi.fn()) {
+function renderForm(onValidated = vi.fn(), initialCode = '') {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   const utils = render(
     <QueryClientProvider client={queryClient}>
-      <Q4RoomCodeForm onValidated={onValidated} />
+      <Q4RoomCodeForm onValidated={onValidated} initialCode={initialCode} />
     </QueryClientProvider>,
   );
   return { ...utils, onValidated };
@@ -52,6 +52,14 @@ async function typeCode(code: string) {
 describe('Q4RoomCodeForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('con initialCode precarga las celdas y habilita "Ingresar" (RC-011 Escenario 3)', () => {
+    renderForm(vi.fn(), 'EDS101');
+
+    const cells = screen.getAllByRole('textbox');
+    expect(cells.map((cell) => (cell as HTMLInputElement).value).join('')).toBe('EDS101');
+    expect(screen.getByRole('button', { name: 'Ingresar' })).toBeEnabled();
   });
 
   it('mantiene "Ingresar" deshabilitado hasta completar las 6 celdas', async () => {
