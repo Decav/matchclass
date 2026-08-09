@@ -1,18 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { getDocMock, setDocMock, docMock, collectionMock, serverTimestampMock, getCountFromServerMock } =
-  vi.hoisted(() => ({
-    getDocMock: vi.fn(),
-    setDocMock: vi.fn(),
-    docMock: vi.fn((...args: unknown[]) => ({ __doc: args })),
-    collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
-    serverTimestampMock: vi.fn(() => '__serverTimestamp__'),
-    getCountFromServerMock: vi.fn(),
-  }));
+const {
+  getDocMock,
+  setDocMock,
+  updateDocMock,
+  docMock,
+  collectionMock,
+  serverTimestampMock,
+  getCountFromServerMock,
+} = vi.hoisted(() => ({
+  getDocMock: vi.fn(),
+  setDocMock: vi.fn(),
+  updateDocMock: vi.fn(),
+  docMock: vi.fn((...args: unknown[]) => ({ __doc: args })),
+  collectionMock: vi.fn((...args: unknown[]) => ({ __collection: args })),
+  serverTimestampMock: vi.fn(() => '__serverTimestamp__'),
+  getCountFromServerMock: vi.fn(),
+}));
 
 vi.mock('firebase/firestore', () => ({
   getDoc: getDocMock,
   setDoc: setDocMock,
+  updateDoc: updateDocMock,
   doc: docMock,
   collection: collectionMock,
   serverTimestamp: serverTimestampMock,
@@ -67,7 +76,10 @@ describe('ResponseRepository', () => {
     it('escribe studentName, occupiedBlocks, roomId y createdByUid con merge:true', async () => {
       setDocMock.mockResolvedValue(undefined);
 
-      await ResponseRepository.submit('room-1', 'uid-1', { studentName: 'Ana', occupiedBlocks: [] });
+      await ResponseRepository.submit('room-1', 'uid-1', {
+        studentName: 'Ana',
+        occupiedBlocks: [],
+      });
 
       expect(setDocMock).toHaveBeenCalledWith(
         expect.anything(),
@@ -95,6 +107,31 @@ describe('ResponseRepository', () => {
     it('sala sin respuestas devuelve 0', async () => {
       getCountFromServerMock.mockResolvedValue({ data: () => ({ count: 0 }) });
       expect(await ResponseRepository.countByRoom('room-vacia')).toBe(0);
+    });
+  });
+
+  describe('updateBlocks', () => {
+    it('escribe solo occupiedBlocks y updatedAt, nunca createdAt ni studentName (RC-013 §5)', async () => {
+      updateDocMock.mockResolvedValue(undefined);
+
+      await ResponseRepository.updateBlocks('room-1', 'uid-1', [1, 2, 8, 13]);
+
+      expect(docMock).toHaveBeenCalledWith(
+        { __collection: [{}, 'rooms', 'room-1', 'responses'] },
+        'uid-1',
+      );
+      expect(updateDocMock).toHaveBeenCalledTimes(1);
+      const [, payload] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
+      expect(payload).toEqual({ occupiedBlocks: [1, 2, 8, 13], updatedAt: '__serverTimestamp__' });
+    });
+
+    it('una respuesta vacía se guarda como arreglo vacío, no se omite el campo', async () => {
+      updateDocMock.mockResolvedValue(undefined);
+
+      await ResponseRepository.updateBlocks('room-1', 'uid-1', []);
+
+      const [, payload] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
+      expect(payload).toMatchObject({ occupiedBlocks: [] });
     });
   });
 });

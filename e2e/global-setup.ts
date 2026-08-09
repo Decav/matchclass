@@ -50,6 +50,12 @@ import {
   ROOM_ACTIONS_CLOSED_ROOM_ID,
   ROOM_ACTIONS_CLOSED_ROOM_CODE,
   ROOM_ACTIONS_CLOSED_ROOM_NAME,
+  STUDENT_GRID_ROOM_ID,
+  STUDENT_GRID_ROOM_CODE,
+  STUDENT_GRID_ROOM_NAME,
+  STUDENT_GRID_CLOSED_ROOM_ID,
+  STUDENT_GRID_CLOSED_ROOM_CODE,
+  STUDENT_GRID_CLOSED_ROOM_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -128,6 +134,22 @@ async function ensureRoom(db: Firestore, room: RoomSeed): Promise<string> {
 
   const added = await db.collection('rooms').add(data);
   return added.id;
+}
+
+/**
+ * Borra las respuestas de una sala (RC-013 §11). `student-grid.spec.ts`
+ * escribe `occupiedBlocks` con el uid anónimo que crea el navegador en cada
+ * corrida — sin este borrado, el run siguiente arrancaría con la grilla del
+ * run anterior ya marcada y el Escenario 1 fallaría por datos, no por
+ * código.
+ */
+async function resetResponses(db: Firestore, roomId: string): Promise<void> {
+  const snapshot = await db.collection('rooms').doc(roomId).collection('responses').get();
+  if (snapshot.empty) return;
+
+  const batch = db.batch();
+  snapshot.docs.forEach((docSnapshot) => batch.delete(docSnapshot.ref));
+  await batch.commit();
 }
 
 /** Siembra hasta `count` respuestas fake si la subcolección todavía está vacía — idempotente entre corridas. */
@@ -298,6 +320,28 @@ export default async function globalSetup(): Promise<void> {
     name: ROOM_ACTIONS_CLOSED_ROOM_NAME,
     status: 'closed',
     createdBy: roomActionsHelper.uid,
+    reset: true,
+  });
+
+  // Salas de `student-grid.spec.ts` (RC-013, HU-11), del helper genérico.
+  // Se resiembran enteras y se les borran las respuestas: el spec marca
+  // bloques con el uid anónimo del navegador, distinto en cada corrida.
+  await ensureRoom(db, {
+    id: STUDENT_GRID_ROOM_ID,
+    code: STUDENT_GRID_ROOM_CODE,
+    name: STUDENT_GRID_ROOM_NAME,
+    status: 'active',
+    createdBy: helper.uid,
+    reset: true,
+  });
+  await resetResponses(db, STUDENT_GRID_ROOM_ID);
+
+  await ensureRoom(db, {
+    id: STUDENT_GRID_CLOSED_ROOM_ID,
+    code: STUDENT_GRID_CLOSED_ROOM_CODE,
+    name: STUDENT_GRID_CLOSED_ROOM_NAME,
+    status: 'closed',
+    createdBy: helper.uid,
     reset: true,
   });
 }

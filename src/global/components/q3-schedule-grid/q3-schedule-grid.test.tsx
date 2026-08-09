@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { BookOpen } from 'lucide-react';
 import { Q3ScheduleGrid, type Q3ScheduleGridRow } from './q3-schedule-grid';
 
 const ROWS: Q3ScheduleGridRow[] = [
@@ -50,6 +51,29 @@ describe('Q3ScheduleGrid', () => {
       'aria-pressed',
       'false',
     );
+  });
+
+  it('sin occupiedIcon usa el ícono por defecto (regresión de RC-010, grilla del ayudante)', () => {
+    render(<Q3ScheduleGrid rows={ROWS} columns={COLUMNS} selected={new Set([1])} onToggle={vi.fn()} />);
+
+    const icon = screen.getByRole('button', { name: 'Lunes, 08:15 – 09:25' }).querySelector('svg');
+    expect(icon).toBeInTheDocument();
+    expect(icon).toHaveClass('lucide-x');
+  });
+
+  it('con occupiedIcon renderiza ese ícono en las celdas ocupadas (RC-013 §5)', () => {
+    render(
+      <Q3ScheduleGrid
+        rows={ROWS}
+        columns={COLUMNS}
+        selected={new Set([1])}
+        onToggle={vi.fn()}
+        occupiedIcon={BookOpen}
+      />,
+    );
+
+    const icon = screen.getByRole('button', { name: 'Lunes, 08:15 – 09:25' }).querySelector('svg');
+    expect(icon).toHaveClass('lucide-book-open');
   });
 
   it('con disabled: true ninguna celda dispara onToggle', () => {

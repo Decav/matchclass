@@ -1564,3 +1564,131 @@ body {
 .mc-room-actions__item--danger:hover {
   background: var(--mc-danger-bg);
 }
+/* ---------------------------------------------------------------------
+ * Grilla del alumno (RC-013, HU-11). Fuente de verdad visual:
+ * matchclass_design.pen · frame "Grilla Alumno" (nodeId J2ZlIY), leído con
+ * `Get(nodeId, {resolveVariables: true})`. La grilla en sí reusa las clases
+ * `.mc-schedule-*` de RC-010 — sus medidas ya coinciden con este frame al
+ * pixel (celda 52px, radio 10, gap 10, columna de horarios 80px).
+ * ------------------------------------------------------------------- */
+
+.mc-student-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: var(--mc-spacing-8) var(--mc-spacing-6);
+  background: var(--mc-surface);
+}
+
+.mc-student-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-6);
+  width: 840px;
+  max-width: 100%;
+}
+
+.mc-student-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mc-spacing-4);
+}
+
+.mc-student-page__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  background: var(--mc-brand-primary);
+  border-radius: 14px;
+  color: var(--mc-text-on-brand);
+  font-size: var(--mc-text-xl);
+  font-weight: var(--mc-font-bold);
+}
+
+.mc-student-page__room-tag {
+  font-size: 11px;
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-tertiary);
+}
+
+.mc-student-page__room-name {
+  font-size: var(--mc-text-lg);
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-primary);
+}
+
+.mc-student-page__title {
+  font-size: 22px;
+  font-weight: var(--mc-font-bold);
+  text-align: center;
+  color: var(--mc-text-primary);
+}
+
+.mc-student-page__subtitle {
+  max-width: 700px;
+  margin-inline: auto;
+  font-size: var(--mc-text-sm);
+  line-height: 1.4;
+  text-align: center;
+  color: var(--mc-text-secondary);
+}
+
+.mc-student-page__privacy {
+  font-size: var(--mc-text-xs);
+  text-align: center;
+  color: var(--mc-text-tertiary);
+}
+
+/* El frame envuelve grilla + leyenda en una sola tarjeta blanca. `.mc-schedule-grid`
+   ya trae su propio fondo y padding, así que este contenedor solo aporta el
+   borde exterior y el espacio de la leyenda. */
+.mc-student-grid__card {
+  display: flex;
+  flex-direction: column;
+  background: var(--mc-card);
+  border-radius: var(--mc-radius-lg);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-student-grid__legend {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-5);
+  padding: 0 var(--mc-spacing-6) var(--mc-spacing-6);
+}
+
+/* ---------------------------------------------------------------------
+ * Indicador de guardado (Q2SaveStatus, RC-013 §5 — nodo "AG Status Row").
+ * ------------------------------------------------------------------- */
+
+.mc-save-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-secondary);
+}
+
+.mc-save-status__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: var(--mc-radius-full);
+}
+
+/* El nodo trae `#FBBF24`, que es el ámbar del heatmap. Se usa `--mc-warning`
+   en su lugar: el heatmap es una escala de disponibilidad, no un set de
+   tokens semánticos, y el design system prohíbe cruzarlos (12-design-system
+   §"Mapa de calor"). El dot queda un punto más oscuro que el frame. */
+.mc-save-status--dirty .mc-save-status__dot {
+  background: var(--mc-warning);
+}
+
+.mc-save-status--saved .mc-save-status__dot {
+  background: var(--mc-success);
+}

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X, type LucideIcon } from 'lucide-react';
 
 export interface Q3ScheduleGridRow {
   /** Hora de inicio del bloque (`"08:15"`), o `"Vespertino"` sin `sublabel`. */
@@ -22,6 +22,12 @@ export interface Q3ScheduleGridProps {
   onToggle: (cell: number) => void;
   /** Desactiva el toggle de todas las celdas (ej. mientras se guarda). */
   disabled?: boolean;
+  /**
+   * Ícono de las celdas marcadas. Default `X` (grilla del ayudante, RC-010);
+   * la del alumno usa `BookOpen` (RC-013 §5) — es la única diferencia visual
+   * entre los dos frames del `.pen`.
+   */
+  occupiedIcon?: LucideIcon;
 }
 
 /**
@@ -35,7 +41,14 @@ export interface Q3ScheduleGridProps {
  * `onToggle`) ya habla en esos términos — el caller nunca maneja fila/columna
  * por separado.
  */
-export function Q3ScheduleGrid({ rows, columns, selected, onToggle, disabled = false }: Q3ScheduleGridProps) {
+export function Q3ScheduleGrid({
+  rows,
+  columns,
+  selected,
+  onToggle,
+  disabled = false,
+  occupiedIcon: OccupiedIcon = X,
+}: Q3ScheduleGridProps) {
   return (
     <div className="mc-schedule-grid">
       <div className="mc-schedule-grid__row">
@@ -78,7 +91,9 @@ export function Q3ScheduleGrid({ rows, columns, selected, onToggle, disabled = f
                 disabled={disabled}
                 onClick={() => onToggle(cell)}
               >
-                {isOccupied && <X size={18} strokeWidth={2} className="mc-schedule-cell__icon" aria-hidden="true" />}
+                {isOccupied && (
+                  <OccupiedIcon size={18} strokeWidth={2} className="mc-schedule-cell__icon" aria-hidden="true" />
+                )}
               </button>
             );
           })}

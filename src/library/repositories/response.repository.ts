@@ -4,6 +4,7 @@ import {
   getCountFromServer,
   getDoc,
   setDoc,
+  updateDoc,
   serverTimestamp,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -64,4 +65,15 @@ export const ResponseRepository = {
       { ...data, roomId, createdByUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() },
       { merge: true },
     ),
+
+  /**
+   * Escritura de "SubmitStudentBlocks" (RC-013 §5/§7, HU-11 Escenario 2).
+   * `updateDoc` y no `submit`: aquel es un `setDoc(..., { merge: true })`
+   * que reescribe `createdAt` en cada llamada — perdería la fecha real de
+   * la primera respuesta — y exige `studentName`, que esta pantalla no
+   * tiene a mano. Acá se tocan exactamente los dos campos que cambian.
+   */
+  updateBlocks: async (roomId: string, uid: string, occupiedBlocks: number[]): Promise<void> => {
+    await updateDoc(doc(responsesRef(roomId), uid), { occupiedBlocks, updatedAt: serverTimestamp() });
+  },
 };

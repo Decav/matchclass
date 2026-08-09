@@ -42,6 +42,35 @@ export const AuthRepository = {
   },
 
   /**
+   * uid de la sesión ya restaurada desde IndexedDB, o `null` si no hay
+   * ninguna (RC-013 §5, HU-11 Escenario 3).
+   *
+   * No se resuelve con `auth.currentUser` ni con `ensureAnonymousSession`:
+   * al cargar la página en frío, `currentUser` es `null` durante los
+   * primeros milisegundos hasta que el SDK termina de restaurar la sesión.
+   * `ensureAnonymousSession` en ese instante crearía un uid anónimo NUEVO y
+   * el alumno vería la grilla vacía en vez de su respuesta previa.
+   * `onAuthStateChanged` emite recién cuando la restauración terminó — se
+   * toma esa primera emisión y se corta la suscripción ahí mismo.
+   */
+  getRestoredUid: (): Promise<string | null> =>
+    new Promise((resolve) => {
+      // `emitted` cubre el caso en que el callback se dispara de forma
+      // síncrona: ahí `unsubscribe` todavía no está asignado y el
+      // `unsubscribe?.()` de adentro no hace nada, así que hay que cortar
+      // la suscripción después de la asignación. En el caso asíncrono
+      // (el real) pasa lo contrario. Entre los dos, se desuscribe siempre
+      // exactamente una vez.
+      const subscription: { emitted: boolean; unsubscribe?: () => void } = { emitted: false };
+      subscription.unsubscribe = onAuthStateChanged(auth, (fbUser: FirebaseUser | null) => {
+        subscription.emitted = true;
+        subscription.unsubscribe?.();
+        resolve(fbUser ? fbUser.uid : null);
+      });
+      if (subscription.emitted) subscription.unsubscribe();
+    }),
+
+  /**
    * Use case "LogoutAyudante" (RC-006 §6, paso 1). Invalida la sesión real
    * en IndexedDB — tras esto, `subscribeToAuthState`/`onAuthStateChanged`
    * emite `null` incluso recargando la página (HU-04, Escenario 3).

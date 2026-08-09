@@ -3,8 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 /**
  * Placeholder de `/salas/:roomId` (RC-008 §10) — destino de "Abrir" en una
  * room card del dashboard. La gestión/detalle real de una sala todavía no
- * es un RC. Mismo patrón que `PaRoomPlaceholder` (scheduling, `/sala/:roomId`
- * — esa es la grilla pública del alumno; esta es la vista del ayudante).
+ * es un RC. No confundir con `/sala/:roomId` (módulo `scheduling`): esa es
+ * la grilla pública del alumno, ya implementada en RC-013; esta es la vista
+ * del ayudante.
  */
 export function PaRoomDetailPlaceholder() {
   const { roomId } = useParams<{ roomId: string }>();

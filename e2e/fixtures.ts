@@ -107,3 +107,19 @@ export const ROOM_ACTIONS_DELETE_ROOM_NAME = 'Termodinámica · Secc 6';
 export const ROOM_ACTIONS_CLOSED_ROOM_ID = 'e2e-room-actions-closed';
 export const ROOM_ACTIONS_CLOSED_ROOM_CODE = 'ACT004';
 export const ROOM_ACTIONS_CLOSED_ROOM_NAME = 'Estadística · Secc 7';
+
+/**
+ * Salas de `student-grid.spec.ts` (RC-013, HU-11), del mismo ayudante
+ * genérico. Cada test tiene la suya y se resiembran con `reset: true`: el
+ * spec escribe `occupiedBlocks` en la subcolección `responses`, así que un
+ * run dejaría al siguiente con bloques ya marcados. El borrado de las
+ * respuestas previas lo hace `resetResponses` en `global-setup.ts`.
+ */
+export const STUDENT_GRID_ROOM_ID = 'e2e-student-grid';
+export const STUDENT_GRID_ROOM_CODE = 'GRD001';
+export const STUDENT_GRID_ROOM_NAME = 'Programación Avanzada · Secc 2';
+
+/** Sala cerrada para probar la entrada por URL directa a `/sala/:roomId` (RC-013 D3). */
+export const STUDENT_GRID_CLOSED_ROOM_ID = 'e2e-student-grid-closed';
+export const STUDENT_GRID_CLOSED_ROOM_CODE = 'GRD002';
+export const STUDENT_GRID_CLOSED_ROOM_NAME = 'Redes de Computadores · Secc 1';

@@ -86,6 +86,32 @@ describe('AuthRepository', () => {
     );
   });
 
+  it('getRestoredUid espera la primera emisión de onAuthStateChanged y se desuscribe (RC-013 §5)', async () => {
+    const unsubscribe = vi.fn();
+    onAuthStateChangedMock.mockImplementation((_auth: unknown, cb: (u: unknown) => void) => {
+      // Emisión asíncrona: reproduce que el SDK todavía no restauró la
+      // sesión en el momento del render inicial.
+      setTimeout(() => cb({ uid: 'uid-anon-restaurado' }), 0);
+      return unsubscribe;
+    });
+
+    await expect(AuthRepository.getRestoredUid()).resolves.toBe('uid-anon-restaurado');
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(signInAnonymouslyMock).not.toHaveBeenCalled();
+  });
+
+  it('getRestoredUid devuelve null si no hay sesión que restaurar, sin crear una anónima', async () => {
+    const unsubscribe = vi.fn();
+    onAuthStateChangedMock.mockImplementation((_auth: unknown, cb: (u: unknown) => void) => {
+      cb(null);
+      return unsubscribe;
+    });
+
+    await expect(AuthRepository.getRestoredUid()).resolves.toBeNull();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(signInAnonymouslyMock).not.toHaveBeenCalled();
+  });
+
   it('subscribeToAuthState traduce FirebaseUser a uid (o null)', () => {
     const callback = vi.fn();
     onAuthStateChangedMock.mockImplementation((_auth: unknown, cb: (u: unknown) => void) => {

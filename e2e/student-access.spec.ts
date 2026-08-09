@@ -35,7 +35,9 @@ test.describe('Tab Alumno', () => {
     await page.getByRole('button', { name: 'Entrar a la grilla' }).click();
 
     await expect(page).toHaveURL(/\/sala\/.+/);
-    await expect(page.getByText('Grilla en construcción')).toBeVisible();
+    // Desde RC-013 el destino es la grilla real, no el placeholder "Grilla
+    // en construcción" que afirmaba este test cuando se escribió (RC-003).
+    await expect(page.getByRole('heading', { name: 'Marca los bloques donde tienes clase' })).toBeVisible();
   });
 
   test('código de sala donde ya respondió salta directo a la grilla (Escenario 16)', async ({
