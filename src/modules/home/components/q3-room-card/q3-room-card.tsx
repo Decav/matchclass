@@ -5,9 +5,17 @@ import { Q1StatusBadge } from '@global/components/q1-status-badge';
 import { copyToClipboard, selectElementText } from '@global/utils/copy-to-clipboard';
 import { buildAlumnoAccessLink } from '@resources/utils/build-alumno-access-link';
 import type { RoomWithResponseCount } from '@resources/types/room-with-response-count.type';
+import { Q2RoomActionsMenu, type RoomLifecycleAction } from '../q2-room-actions-menu';
 
 export interface Q3RoomCardProps {
   room: RoomWithResponseCount;
+  /**
+   * La card no ejecuta la acción ni abre el diálogo: solo avisa cuál se
+   * eligió. La mutación y la confirmación viven en `Q4DashboardRooms`
+   * (RC-012 §6) — así hay un solo diálogo en pantalla y la card sigue sin
+   * lógica de negocio.
+   */
+  onAction: (action: RoomLifecycleAction) => void;
 }
 
 type CopiedField = 'code' | 'link' | null;
@@ -27,11 +35,15 @@ const COPIED_LABEL_DURATION_MS = 1500;
  * pantalla (`selectElementText`, Escenario 4) para que el usuario lo copie
  * manualmente — nunca el enlace, que no se muestra en la card.
  *
+ * El kebab `⋮` (RC-012, HU-10) abre el menú de ciclo de vida de la sala
+ * ("Cerrar sala" / "Eliminar sala"). El nodo existía en el `.pen` desde la
+ * iteración 8 del diseño, pero recién se implementa acá.
+ *
  * `studentLimit` opcional (RC-008 §10, decisión ya tomada): con límite se
  * muestra "responseCount/studentLimit" + barra de progreso (tope 100%); sin
  * límite, solo "responseCount alumnos respondieron", sin barra.
  */
-export function Q3RoomCard({ room }: Q3RoomCardProps) {
+export function Q3RoomCard({ room, onAction }: Q3RoomCardProps) {
   const [copiedField, setCopiedField] = useState<CopiedField>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const codeRef = useRef<HTMLSpanElement>(null);
@@ -131,6 +143,7 @@ export function Q3RoomCard({ room }: Q3RoomCardProps) {
           )}
           {copiedField === 'link' ? '¡Copiado!' : 'Copiar enlace'}
         </button>
+        <Q2RoomActionsMenu status={room.status} roomName={room.name} onSelect={onAction} />
       </div>
     </div>
   );

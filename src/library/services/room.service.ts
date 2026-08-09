@@ -9,8 +9,9 @@ const ROOM_CODE_LENGTH = 6;
 const MAX_CODE_ATTEMPTS = 3;
 
 /**
- * Activas primero (por `createdAt` DESC), luego el resto (`closed`/
- * `archived`, también por `createdAt` DESC) — RC-008 §5/§6.
+ * Activas primero (por `createdAt` DESC), luego las cerradas (también por
+ * `createdAt` DESC) — RC-008 §5/§6. Las `archived` no llegan hasta acá: las
+ * descarta `getDashboardRooms` antes de ordenar (RC-012 §5).
  */
 function compareDashboardRooms(a: RoomWithResponseCount, b: RoomWithResponseCount): number {
   const aActive = a.status === 'active';
@@ -26,8 +27,16 @@ function compareDashboardRooms(a: RoomWithResponseCount, b: RoomWithResponseCoun
  * este mismo patrón.
  */
 export const RoomService = {
+  /**
+   * Las salas `archived` (eliminadas con soft delete, RC-012 §5/§6) se
+   * descartan acá y no en el componente: "eliminar" debe hacerlas
+   * desaparecer del dashboard completo (HU-10 Escenario 4), incluida la
+   * sección "Salas pasadas" y los tres KPIs. El documento sigue existiendo
+   * en Firestore — solo deja de ser visible.
+   */
   getDashboardRooms: async (uid: string): Promise<RoomWithResponseCount[]> => {
-    const rooms = await RoomRepository.listByOwner(uid);
+    const owned = await RoomRepository.listByOwner(uid);
+    const rooms = owned.filter((room) => room.status !== 'archived');
     const responseCounts = await Promise.all(rooms.map((room) => ResponseRepository.countByRoom(room.id)));
 
     const withCounts: RoomWithResponseCount[] = rooms.map((room, index) => ({

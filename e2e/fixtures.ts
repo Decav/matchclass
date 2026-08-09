@@ -74,3 +74,36 @@ export const ROOM_BLOCKS_PRELOADED_ROOM_ID = 'e2e-room-blocks-preloaded';
 export const ROOM_BLOCKS_PRELOADED_ROOM_CODE = 'BLK002';
 export const ROOM_BLOCKS_PRELOADED_ROOM_NAME = 'Cálculo I · Secc 2';
 export const ROOM_BLOCKS_PRELOADED_SLOTS = [2, 4, 6, 8];
+
+/**
+ * Cuenta dedicada a `room-actions.spec.ts` (RC-012, HU-10), aislada del
+ * resto: sus tres salas se cierran, reabren y archivan durante la corrida.
+ * Por eso se siembran con `reset: true` (id fijo + sobrescritura) — sin eso
+ * la segunda corrida arrancaría con el estado que dejó la primera y los
+ * tests fallarían por datos, no por código. Una sala por escenario, para que
+ * los tests puedan correr en paralelo sin pisarse.
+ */
+export const ROOM_ACTIONS_HELPER_EMAIL = 'ayudante.acciones.e2e@matchclass.cl';
+export const ROOM_ACTIONS_HELPER_PASSWORD = 'Test1234!';
+export const ROOM_ACTIONS_HELPER_DISPLAY_NAME = 'Ayudante Acciones E2E';
+
+export const ROOM_ACTIONS_CLOSE_ROOM_ID = 'e2e-room-actions-close';
+export const ROOM_ACTIONS_CLOSE_ROOM_CODE = 'ACT001';
+export const ROOM_ACTIONS_CLOSE_ROOM_NAME = 'Física General · Secc 4';
+
+export const ROOM_ACTIONS_REOPEN_ROOM_ID = 'e2e-room-actions-reopen';
+export const ROOM_ACTIONS_REOPEN_ROOM_CODE = 'ACT002';
+export const ROOM_ACTIONS_REOPEN_ROOM_NAME = 'Álgebra Lineal · Secc 5';
+
+export const ROOM_ACTIONS_DELETE_ROOM_ID = 'e2e-room-actions-delete';
+export const ROOM_ACTIONS_DELETE_ROOM_CODE = 'ACT003';
+export const ROOM_ACTIONS_DELETE_ROOM_NAME = 'Termodinámica · Secc 6';
+
+/**
+ * Sala cerrada exclusiva de la regresión del Escenario 2 (el alumno con el
+ * código de una sala cerrada sigue viendo "Esta sala ya no acepta
+ * respuestas"). Separada de las tres de arriba porque nadie la reabre.
+ */
+export const ROOM_ACTIONS_CLOSED_ROOM_ID = 'e2e-room-actions-closed';
+export const ROOM_ACTIONS_CLOSED_ROOM_CODE = 'ACT004';
+export const ROOM_ACTIONS_CLOSED_ROOM_NAME = 'Estadística · Secc 7';

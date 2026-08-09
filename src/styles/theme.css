@@ -1036,15 +1036,20 @@ body {
 
 .mc-room-card__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--mc-spacing-2);
 }
 
+/* `nowrap`: con el kebab de RC-012 la fila quedó justa y "Copiar enlace"
+   partía en dos líneas. Preferimos que un botón baje a la línea siguiente
+   (`flex-wrap` arriba) antes que quebrar un label. */
 .mc-room-card__action {
   display: inline-flex;
   align-items: center;
   gap: var(--mc-spacing-2);
   height: 32px;
+  white-space: nowrap;
   padding-inline: var(--mc-spacing-3);
   border-radius: var(--mc-radius);
   border: 1px solid transparent;
@@ -1343,11 +1348,8 @@ body {
   align-items: center;
   gap: var(--mc-spacing-2);
   padding: var(--mc-spacing-3) var(--mc-spacing-5);
-  background: var(--mc-success-bg);
-  border: 1px solid var(--mc-success-border);
   border-radius: var(--mc-radius-md);
   box-shadow: var(--mc-shadow-lg);
-  color: var(--mc-success-text);
   font-size: var(--mc-text-sm);
   font-weight: var(--mc-font-semibold);
   animation: mc-fade-in var(--mc-transition-slow);
@@ -1355,5 +1357,210 @@ body {
 
 .mc-toast svg {
   flex-shrink: 0;
+}
+
+.mc-toast--success {
+  background: var(--mc-success-bg);
+  border: 1px solid var(--mc-success-border);
+  color: var(--mc-success-text);
+}
+
+.mc-toast--success svg {
   color: var(--mc-success);
+}
+
+/* Variante de error (RC-012 §4): fallo de red al cambiar el estado de una sala. */
+.mc-toast--error {
+  background: var(--mc-danger-bg);
+  border: 1px solid var(--mc-danger-border);
+  color: var(--mc-danger-text);
+}
+
+.mc-toast--error svg {
+  color: var(--mc-danger);
+}
+
+/* ---------------------------------------------------------------------
+ * Ciclo de vida de sala (RC-012, HU-10). Fuente de verdad visual:
+ * matchclass_design.pen · "Confirm Dialog Component" (nodeId lwsXI) y
+ * "RC Kebab Button" (nodeId s5GbWH) dentro de "Room Card Component"
+ * (uksGB) — valores leídos con `Get(nodeId, {resolveVariables: true})`.
+ * El menú desplegado del kebab no está diseñado en ningún frame
+ * (`design-feedback-08.md`: "a elección del diseñador"): se construye con
+ * el lenguaje visual ya establecido.
+ * ------------------------------------------------------------------- */
+
+.mc-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mc-z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mc-spacing-4);
+  background: rgb(15 23 41 / 45%);
+  animation: mc-fade-in var(--mc-transition-fast);
+}
+
+.mc-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-5);
+  width: 420px;
+  max-width: 100%;
+  padding: 28px;
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-lg);
+}
+
+.mc-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: var(--mc-danger-bg);
+  border-radius: var(--mc-radius-full);
+  color: var(--mc-danger);
+}
+
+.mc-dialog__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-1);
+}
+
+.mc-dialog__title {
+  font-size: var(--mc-text-lg);
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-primary);
+}
+
+.mc-dialog__message {
+  font-size: var(--mc-text-sm);
+  color: var(--mc-text-secondary);
+}
+
+.mc-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--mc-spacing-3);
+}
+
+.mc-dialog__btn {
+  height: 44px;
+  padding-inline: var(--mc-spacing-4);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--mc-transition-fast),
+    opacity var(--mc-transition-fast);
+}
+
+.mc-dialog__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mc-dialog__btn--cancel {
+  background: transparent;
+  border-color: var(--mc-border);
+  color: var(--mc-text-secondary);
+}
+
+.mc-dialog__btn--cancel:hover:not(:disabled) {
+  background: var(--mc-surface-alt);
+}
+
+.mc-dialog__btn--danger {
+  background: var(--mc-danger);
+  color: var(--mc-text-inverse);
+}
+
+.mc-dialog__btn--danger:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.mc-dialog__btn--primary {
+  background: var(--mc-brand-primary);
+  color: var(--mc-text-on-brand);
+}
+
+.mc-dialog__btn--primary:hover:not(:disabled) {
+  box-shadow: var(--mc-shadow-brand);
+}
+
+.mc-room-actions {
+  position: relative;
+}
+
+/* Kebab: 36×32 con el mismo borde y radio que las acciones secundarias de la
+   card (nodo "RC Kebab Button"). */
+.mc-room-actions__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--mc-border-strong);
+  border-radius: var(--mc-radius);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--mc-transition-fast);
+}
+
+.mc-room-actions__trigger:hover {
+  background: var(--mc-surface-alt);
+}
+
+.mc-room-actions__menu {
+  position: absolute;
+  top: calc(100% + var(--mc-spacing-1));
+  right: 0;
+  z-index: var(--mc-z-dropdown);
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--mc-spacing-1);
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius);
+  box-shadow: var(--mc-shadow-md);
+}
+
+.mc-room-actions__item {
+  display: flex;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  width: 100%;
+  padding: var(--mc-spacing-2) var(--mc-spacing-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-text-xs);
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--mc-transition-fast);
+}
+
+.mc-room-actions__item:hover {
+  background: var(--mc-surface-alt);
+}
+
+.mc-room-actions__item--danger {
+  color: var(--mc-danger);
+}
+
+.mc-room-actions__item--danger:hover {
+  background: var(--mc-danger-bg);
 }

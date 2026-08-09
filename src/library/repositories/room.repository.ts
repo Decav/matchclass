@@ -108,4 +108,15 @@ export const RoomRepository = {
   updateBlockedSlots: async (roomId: string, blockedSlots: number[]): Promise<void> => {
     await updateDoc(doc(db, 'rooms', roomId), { helperBlockedSlots: blockedSlots });
   },
+
+  /**
+   * Ciclo de vida de la sala (RC-012 §5/§7, HU-10). Un solo método para las
+   * tres transiciones — cerrar (`closed`), reabrir (`active`) y eliminar
+   * (`archived`, soft delete) — en vez de tres métodos idénticos salvo por
+   * el literal. Igual que `updateBlockedSlots`, escribe un único campo: no
+   * hay forma de pisar el resto del documento desde acá.
+   */
+  updateStatus: async (roomId: string, status: RoomStatus): Promise<void> => {
+    await updateDoc(doc(db, 'rooms', roomId), { status });
+  },
 };

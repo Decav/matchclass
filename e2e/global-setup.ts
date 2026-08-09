@@ -35,6 +35,21 @@ import {
   ROOM_BLOCKS_PRELOADED_ROOM_CODE,
   ROOM_BLOCKS_PRELOADED_ROOM_NAME,
   ROOM_BLOCKS_PRELOADED_SLOTS,
+  ROOM_ACTIONS_HELPER_EMAIL,
+  ROOM_ACTIONS_HELPER_PASSWORD,
+  ROOM_ACTIONS_HELPER_DISPLAY_NAME,
+  ROOM_ACTIONS_CLOSE_ROOM_ID,
+  ROOM_ACTIONS_CLOSE_ROOM_CODE,
+  ROOM_ACTIONS_CLOSE_ROOM_NAME,
+  ROOM_ACTIONS_REOPEN_ROOM_ID,
+  ROOM_ACTIONS_REOPEN_ROOM_CODE,
+  ROOM_ACTIONS_REOPEN_ROOM_NAME,
+  ROOM_ACTIONS_DELETE_ROOM_ID,
+  ROOM_ACTIONS_DELETE_ROOM_CODE,
+  ROOM_ACTIONS_DELETE_ROOM_NAME,
+  ROOM_ACTIONS_CLOSED_ROOM_ID,
+  ROOM_ACTIONS_CLOSED_ROOM_CODE,
+  ROOM_ACTIONS_CLOSED_ROOM_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -71,6 +86,12 @@ interface RoomSeed {
   createdBy: string;
   studentLimit?: number;
   helperBlockedSlots?: number[];
+  /**
+   * Sobrescribe el documento aunque ya exista (RC-012 §11): las salas de
+   * `room-actions.spec.ts` cambian de `status` durante la corrida, así que
+   * cada run tiene que devolverlas a su estado inicial. Requiere `id`.
+   */
+  reset?: boolean;
 }
 
 async function ensureRoom(db: Firestore, room: RoomSeed): Promise<string> {
@@ -78,7 +99,7 @@ async function ensureRoom(db: Firestore, room: RoomSeed): Promise<string> {
     ? db.collection('rooms').doc(room.id)
     : (await db.collection('rooms').where('code', '==', room.code).limit(1).get()).docs[0]?.ref;
 
-  if (ref) {
+  if (ref && !room.reset) {
     const existing = await ref.get();
     if (existing.exists) {
       if (room.studentLimit !== undefined) {
@@ -235,5 +256,48 @@ export default async function globalSetup(): Promise<void> {
     status: 'active',
     createdBy: roomBlocksHelper.uid,
     helperBlockedSlots: ROOM_BLOCKS_PRELOADED_SLOTS,
+  });
+
+  // Helper dedicado a `room-actions.spec.ts` (RC-012, HU-10). Sus salas se
+  // resiembran con `reset: true` en cada corrida: los tests las cierran, las
+  // reabren y las archivan, así que el estado que dejan no sirve como punto
+  // de partida del run siguiente.
+  const roomActionsHelper = await ensureHelper(auth, db, {
+    email: ROOM_ACTIONS_HELPER_EMAIL,
+    password: ROOM_ACTIONS_HELPER_PASSWORD,
+    displayName: ROOM_ACTIONS_HELPER_DISPLAY_NAME,
+  });
+
+  await ensureRoom(db, {
+    id: ROOM_ACTIONS_CLOSE_ROOM_ID,
+    code: ROOM_ACTIONS_CLOSE_ROOM_CODE,
+    name: ROOM_ACTIONS_CLOSE_ROOM_NAME,
+    status: 'active',
+    createdBy: roomActionsHelper.uid,
+    reset: true,
+  });
+  await ensureRoom(db, {
+    id: ROOM_ACTIONS_REOPEN_ROOM_ID,
+    code: ROOM_ACTIONS_REOPEN_ROOM_CODE,
+    name: ROOM_ACTIONS_REOPEN_ROOM_NAME,
+    status: 'closed',
+    createdBy: roomActionsHelper.uid,
+    reset: true,
+  });
+  await ensureRoom(db, {
+    id: ROOM_ACTIONS_DELETE_ROOM_ID,
+    code: ROOM_ACTIONS_DELETE_ROOM_CODE,
+    name: ROOM_ACTIONS_DELETE_ROOM_NAME,
+    status: 'active',
+    createdBy: roomActionsHelper.uid,
+    reset: true,
+  });
+  await ensureRoom(db, {
+    id: ROOM_ACTIONS_CLOSED_ROOM_ID,
+    code: ROOM_ACTIONS_CLOSED_ROOM_CODE,
+    name: ROOM_ACTIONS_CLOSED_ROOM_NAME,
+    status: 'closed',
+    createdBy: roomActionsHelper.uid,
+    reset: true,
   });
 }

@@ -1,1 +1,1 @@
-export { Q1Toast, type Q1ToastProps } from './q1-toast';
+export { Q1Toast, type Q1ToastProps, type Q1ToastVariant } from './q1-toast';

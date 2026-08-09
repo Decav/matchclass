@@ -68,6 +68,22 @@ describe('RoomService.getDashboardRooms', () => {
     expect(result.map((r) => r.id)).toEqual(['b', 'a']);
   });
 
+  it('excluye las salas archived del dashboard, sin contar sus respuestas (RC-012 §5, Escenario 4)', async () => {
+    const rooms: Room[] = [
+      makeRoom({ id: 'activa', status: 'active', createdAt: new Date('2026-01-10') }),
+      makeRoom({ id: 'cerrada', status: 'closed', createdAt: new Date('2026-01-05') }),
+      makeRoom({ id: 'eliminada', status: 'archived', createdAt: new Date('2026-01-20') }),
+    ];
+    vi.mocked(RoomRepository.listByOwner).mockResolvedValue(rooms);
+    vi.mocked(ResponseRepository.countByRoom).mockResolvedValue(0);
+
+    const result = await RoomService.getDashboardRooms('u1');
+
+    expect(result.map((r) => r.id)).toEqual(['activa', 'cerrada']);
+    expect(ResponseRepository.countByRoom).toHaveBeenCalledTimes(2);
+    expect(ResponseRepository.countByRoom).not.toHaveBeenCalledWith('eliminada');
+  });
+
   it('sin salas devuelve un arreglo vacío sin llamar countByRoom', async () => {
     vi.mocked(RoomRepository.listByOwner).mockResolvedValue([]);
 

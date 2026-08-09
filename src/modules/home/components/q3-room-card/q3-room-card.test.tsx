@@ -20,10 +20,12 @@ function makeRoom(overrides: Partial<RoomWithResponseCount>): RoomWithResponseCo
   };
 }
 
+const onAction = vi.fn();
+
 function renderCard(room: RoomWithResponseCount) {
   return render(
     <MemoryRouter>
-      <Q3RoomCard room={room} />
+      <Q3RoomCard room={room} onAction={onAction} />
     </MemoryRouter>,
   );
 }
@@ -81,6 +83,15 @@ describe('Q3RoomCard', () => {
       expect(writeTextMock).toHaveBeenCalledWith(`${window.location.origin}/acceso?tipo=alumno&codigo=XYZ999`),
     );
     await waitFor(() => expect(screen.getAllByRole('button', { name: '¡Copiado!' })).toHaveLength(1));
+  });
+
+  it('el kebab abre el menú y "Cerrar sala" reporta la acción al organismo (RC-012)', async () => {
+    renderCard(makeRoom({ name: 'Cálculo I' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones de Cálculo I' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Cerrar sala' }));
+
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('close'));
   });
 
   it('sin Clipboard API, "Copiar" selecciona el código en vez de copiarlo (Escenario 4)', async () => {

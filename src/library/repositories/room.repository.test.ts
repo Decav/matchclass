@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { RoomStatus } from '@resources/entities/room.entity';
 
 const {
   getDocsMock,
@@ -244,5 +245,28 @@ describe('RoomRepository.updateBlockedSlots', () => {
     expect(updateDocMock).toHaveBeenCalledTimes(1);
     const [, payload] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
     expect(payload).toEqual({ helperBlockedSlots: [2, 4, 6, 8] });
+  });
+});
+
+describe('RoomRepository.updateStatus', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const transitions: [RoomStatus, string][] = [
+    ['closed', 'cerrar'],
+    ['active', 'reabrir'],
+    ['archived', 'eliminar (soft delete)'],
+  ];
+
+  it.each(transitions)('escribe solo { status: %s } para %s (RC-012 §5/§7)', async (status: RoomStatus) => {
+    updateDocMock.mockResolvedValue(undefined);
+
+    await RoomRepository.updateStatus('room-1', status);
+
+    expect(docMock).toHaveBeenCalledWith({}, 'rooms', 'room-1');
+    expect(updateDocMock).toHaveBeenCalledTimes(1);
+    const [, payload] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(payload).toEqual({ status });
   });
 });
