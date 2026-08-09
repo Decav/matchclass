@@ -6,107 +6,129 @@ Requerimiento:
 
 [
 
-# HU-10: Cerrar, reabrir y eliminar sala
+# HU-11: Grilla de bloques del alumno
 
 **Proyecto:** MatchClass
 
-**Epica:** Gestion de Salas
+**Epica:** Respuesta del Alumno
 
-**Prioridad:** Media
+**Prioridad:** Alta
 
-**Story Points:** 2
+**Story Points:** 3
 
 ---
 
 ## Narrativa (INVEST)
 
-**Como** ayudante,
+**Como** alumno,
 
-**quiero** cerrar, reabrir o eliminar mis salas de coordinacion,
+**quiero** marcar los bloques donde tengo clase en una grilla de 50 celdas y enviar mi respuesta,
 
-**para** controlar el ciclo de vida de cada sala y mantener organizado mi espacio.
+**para** que el ayudante sepa mi disponibilidad y pueda encontrar el mejor horario para la ayudantia.
 
 ---
 
 ## Descripcion / Contexto
 
-Las salas tienen un ciclo de vida. El ayudante puede:
+El alumno llega aca despues de ingresar su codigo de sala y su nombre (flujo del tab Alumno en HU-01). El documento de respuesta ya fue creado en Firestore con `occupiedBlocks: []`.
 
-1. **Cerrar una sala activa:** cuando ya se decidio el horario o la ayudantia termino. Las respuestas se congelan (no se aceptan nuevas).
-2. **Reabrir una sala cerrada:** si la ayudantia se cancela, cambia de horario o necesita mas respuestas.
-3. **Eliminar una sala:** borrado logico (soft delete) de una sala que ya no se necesita.
+La pantalla muestra una grilla de 10 filas (bloques USM) x 5 columnas (Lun-Vie) = **50 celdas**. El alumno marca con un toque las celdas donde **tiene clase o trabajo** (inversion de carga). Las celdas no marcadas son los bloques donde esta libre.
 
-Las acciones se ejecutan desde la card de la sala en el dashboard.
+Esta pantalla **no usa el AppShell** — el alumno esta en sesion anonima y no tiene sidebar ni dashboard. Solo ve la grilla, el nombre de la sala, y el boton de envio.
+
+Si el alumno ya respondio antes (vuelve a ingresar el codigo), la grilla se precarga con los bloques que marco previamente y puede modificarlos.
 
 ---
 
 ## Especificaciones / Contrato
 
-- **Cerrar sala:** `updateDoc(doc(db, 'rooms', roomId), { status: 'closed' })`
-- **Reabrir sala:** `updateDoc(doc(db, 'rooms', roomId), { status: 'active' })`
-- **Eliminar sala (soft delete):** `updateDoc(doc(db, 'rooms', roomId), { status: 'archived' })`
-- **Seguridad:** Solo el creador (`createdBy`) puede modificar el estado de su sala (validado por Firestore Security Rules)
-- **Inmutabilidad de respuestas:** Al cerrar, las respuestas existentes no se borran. Solo se bloquea la creacion de nuevas
+- **Lectura de respuesta previa:** Firestore — `getDoc(doc(db, 'rooms', roomId, 'responses', anonymousUid))` para precargar los bloques ya marcados
+- **Actualizacion de respuesta:** Firestore — `updateDoc(doc(db, 'rooms', roomId, 'responses', anonymousUid), { occupiedBlocks: [...], updatedAt: serverTimestamp() })`
+- **Rango de valores:** `occupiedBlocks` acepta numeros del 1 al 50 (celdas dia+bloque, mapeo definido en `docs/tech-document.md`)
+- **Sin AppShell:** Esta pantalla no tiene sidebar ni topbar. Es una vista publica
+- **Sesion anonima:** El `anonymousUid` ya fue creado al ingresar el codigo (HU-01). Se usa para identificar el documento de respuesta
 
 ---
 
 ## Criterios de Aceptacion (Gherkin)
 
-### Escenario 1: Cerrar sala activa
+### Escenario 1: Primera visita — grilla vacia
 
-- **GIVEN** el ayudante esta en el dashboard con salas activas
-- **WHEN** selecciona la opcion "Cerrar sala" en la card de una sala activa
-- **THEN** se muestra un mensaje de confirmacion "¿Cerrar esta sala? No se aceptaran mas respuestas"
-- **AND** al confirmar, el estado de la sala cambia a `closed` en Firestore
-- **AND** la sala se mueve a la seccion "Salas pasadas" del dashboard
+- **GIVEN** el alumno ingreso su codigo y nombre y su respuesta no tiene bloques marcados
+- **WHEN** llega a la pantalla de la grilla
+- **THEN** las 50 celdas aparecen sin marcar (fondo blanco `$grid-resting`)
+- **AND** el header muestra "Estas respondiendo a" + nombre de la sala
+- **AND** el boton "Enviar respuesta" esta deshabilitado (sin cambios)
 
-### Escenario 2: Intentar responder a una sala cerrada
+### Escenario 2: Marcar y enviar bloques ocupados
 
-- **GIVEN** una sala tiene `status: 'closed'`
-- **WHEN** un alumno intenta ingresar con el codigo de esa sala
-- **THEN** se muestra el mensaje "Esta sala ya no acepta respuestas"
-- **AND** no se puede avanzar a la grilla
+- **GIVEN** el alumno esta en la grilla sin bloques marcados
+- **WHEN** toca varias celdas (ej: celdas 1, 2, 8, 13) y presiona "Enviar respuesta"
+- **THEN** el boton muestra un spinner
+- **AND** `occupiedBlocks` se actualiza con `[1, 2, 8, 13]` en Firestore
+- **AND** el indicador cambia a "Respuesta guardada"
+- **AND** se muestra un toast o feedback "Respuesta enviada"
 
-### Escenario 3: Reabrir sala cerrada
+### Escenario 3: Modificar respuesta previa
 
-- **GIVEN** el ayudante esta en el dashboard con salas pasadas
-- **WHEN** selecciona la opcion "Reabrir sala" en una sala cerrada
-- **THEN** el estado de la sala cambia a `active` en Firestore
-- **AND** la sala vuelve a aparecer en la seccion "Salas activas"
-- **AND** los alumnos pueden volver a responder
+- **GIVEN** el alumno ya respondio con `occupiedBlocks: [1, 2, 8, 13]`
+- **WHEN** vuelve a ingresar el codigo de la misma sala
+- **THEN** la grilla precarga las celdas 1, 2, 8 y 13 marcadas (fondo navy `$grid-occupied`)
+- **AND** al desmarcar la celda 2 y presionar "Enviar respuesta"
+- **THEN** `occupiedBlocks` se actualiza con `[1, 8, 13]`
 
-### Escenario 4: Eliminar sala
+### Escenario 4: Toggle de celda
 
-- **GIVEN** el ayudante esta en el dashboard
-- **WHEN** selecciona la opcion "Eliminar sala" en una sala
-- **THEN** se muestra un mensaje de confirmacion "¿Eliminar esta sala? Esta accion no se puede deshacer"
-- **AND** al confirmar, el estado de la sala cambia a `archived`
-- **AND** la sala desaparece del dashboard
+- **GIVEN** el alumno esta en la grilla
+- **WHEN** toca una celda sin marcar
+- **THEN** la celda cambia a estado "ocupado" (fondo navy `$grid-occupied`)
+- **AND** el indicador cambia a "Cambios sin guardar"
+- **WHEN** toca la misma celda de nuevo
+- **THEN** vuelve a estado "libre" (fondo blanco `$grid-resting`)
 
-### Escenario 5: Otro ayudante no puede modificar la sala
+### Escenario 5: Error al enviar
 
-- **GIVEN** un ayudante ve una sala que no creo
-- **THEN** no se muestran las opciones de cerrar, reabrir ni eliminar
-- **AND** Firestore Security Rules rechaza cualquier intento de escritura directo
+- **GIVEN** el alumno marco bloques y presiona "Enviar respuesta"
+- **WHEN** falla la escritura a Firestore
+- **THEN** se muestra un mensaje "Error al guardar. Intenta de nuevo"
+- **AND** las marcas realizadas no se pierden
+
+### Escenario 6: Reingreso a sala cerrada
+
+- **GIVEN** la sala fue cerrada por el ayudante (`status: 'closed'`)
+- **WHEN** el alumno intenta acceder al codigo
+- **THEN** se muestra "Esta sala ya no acepta respuestas"
+- **AND** no puede ver ni modificar la grilla
 
 ---
 
 ## Comportamiento Visual (UI/UX)
 
-- **Cerrar sala:** Opcion en el menu de acciones de la card (o boton). Mostrar dialogo de confirmacion antes de ejecutar. Tras cerrar, la card se mueve a "Salas pasadas" con badge "Cerrada"
-- **Reabrir sala:** Opcion disponible solo en salas cerradas. Mostrar en la seccion de salas pasadas. Sin confirmacion adicional
-- **Eliminar sala:** Opcion en el menu de acciones. Dialogo de confirmacion con advertencia. Tras eliminar, la sala desaparece del dashboard
-- **Confirmaciones:** Usar un dialogo/modal simple con titulo, mensaje y botones "Confirmar"/"Cancelar"
+- **Layout:** Sin AppShell. Card centrado de 840px con header, grilla y boton. Fondo de pagina `$bg-page`
+- **Header:** Logo MC + "Estas respondiendo a" + nombre de la sala
+- **Titulo:** "Marca los bloques donde tienes clase"
+- **Subtitulo:** "Selecciona solo los horarios ocupados. El sistema calcula tu disponibilidad automaticamente"
+- **Grilla:** 10 filas x 5 columnas (50 celdas). Cabecera de lun-vie. Columna izquierda con horarios en JetBrains Mono. Vespertinos muestran "Vespertino" en vez de horario
+- **Celdas:** Toggle libre/ocupado. Libre: fondo `$grid-resting`. Ocupado: fondo `$grid-occupied`. Area tactil minima 44x44px
+- **Indicador de estado:** Texto sutil: "Cambios sin guardar" (dot naranja) o "Respuesta guardada" (dot verde)
+- **Boton:** "Enviar respuesta", primario, full-width. Deshabilitado sin cambios
+- **Leyenda:** Libre/Ocupado debajo de la grilla
+- **Nota privacidad:** "Tu nombre solo lo vera el ayudante"
+- **Prioridad desktop:** >= 1024px. Mobile postergado
+- **Idioma:** Espanol neutro, forma "tu"
 
 ---
 
 ## Definition of Done (DoD)
 
-- [ ] Cerrar una sala cambia su estado a `closed` en Firestore y bloquea nuevas respuestas
-- [ ] Reabrir una sala cambia su estado a `active` y permite nuevas respuestas
-- [ ] Eliminar una sala cambia su estado a `archived` y la oculta del dashboard
-- [ ] Las confirmaciones se muestran antes de cerrar/eliminar
-- [ ] Firestore Security Rules validan que solo el creador puede modificar la sala
+- [ ] La grilla de 50 celdas se renderiza con los horarios USM correctos
+- [ ] Al tocar una celda, alterna entre libre y ocupado
+- [ ] Los bloques se guardan correctamente como `occupiedBlocks` en Firestore (valores 1-50)
+- [ ] Si el alumno vuelve a entrar, su respuesta previa se precarga
+- [ ] El indicador muestra "Cambios sin guardar" / "Respuesta guardada" segun corresponda
+- [ ] El boton esta deshabilitado sin cambios, habilitado con cambios
+- [ ] Los estados de error muestran mensajes claros sin caidas
+- [ ] La interfaz sigue el diseno aprobado en `matchclass_design.pen` (frame `Grilla Alumno`)
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
 
 
