@@ -11,12 +11,13 @@ build/
 
 # Variables de entorno — nunca versionar
 # .env.example SI se versiona (es el template)
+# .env.production SI se versiona (RC-019/D2): solo claves publicas de Firebase,
+# y commitearlo hace reproducible el build de produccion
 .env
 .env.local
 .env.*.local
 .env.development
 .env.staging
-.env.production
 
 # Firebase
 .firebase/
