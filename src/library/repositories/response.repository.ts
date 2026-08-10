@@ -3,6 +3,8 @@ import {
   doc,
   getCountFromServer,
   getDoc,
+  getDocs,
+  onSnapshot,
   setDoc,
   updateDoc,
   serverTimestamp,
@@ -39,6 +41,31 @@ export const ResponseRepository = {
     if (!snapshot.exists()) return null;
     return toResponse(snapshot);
   },
+
+  /**
+   * Todas las respuestas de una sala (RC-014 §5, HU-12). Sin `orderBy`: el
+   * heatmap agrega, no lista — el orden de los documentos no cambia el
+   * resultado, y así no se depende de un índice.
+   *
+   * Solo lo puede llamar el ayudante dueño de la sala: `firestore.rules`
+   * exige `createdBy == request.auth.uid` para leer la subcolección completa.
+   */
+  listByRoom: async (roomId: string): Promise<Response[]> => {
+    const snapshot = await getDocs(responsesRef(roomId));
+    return snapshot.docs.map(toResponse);
+  },
+
+  /**
+   * Igual que `listByRoom` pero en vivo (RC-014 §5/§6, HU-12 Escenario 4):
+   * cada vez que un alumno envía o modifica su respuesta, `onSnapshot`
+   * empuja la lista completa ya mapeada.
+   *
+   * **Devuelve el unsubscribe y quien lo llame está obligado a invocarlo en
+   * el cleanup del efecto**: sin eso, cada montaje deja un listener abierto
+   * —en StrictMode se duplica en dev— y se paga en cuota de lecturas.
+   */
+  subscribeByRoom: (roomId: string, onData: (responses: Response[]) => void): (() => void) =>
+    onSnapshot(responsesRef(roomId), (snapshot) => onData(snapshot.docs.map(toResponse))),
 
   /**
    * Conteo para el dashboard (RC-008 §5). Usa una agregación del lado del

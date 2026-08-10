@@ -56,6 +56,20 @@ import {
   STUDENT_GRID_CLOSED_ROOM_ID,
   STUDENT_GRID_CLOSED_ROOM_CODE,
   STUDENT_GRID_CLOSED_ROOM_NAME,
+  RESULTS_HELPER_EMAIL,
+  RESULTS_HELPER_PASSWORD,
+  RESULTS_HELPER_DISPLAY_NAME,
+  RESULTS_ROOM_ID,
+  RESULTS_ROOM_CODE,
+  RESULTS_ROOM_NAME,
+  RESULTS_ROOM_BLOCKED_SLOTS,
+  RESULTS_ROOM_RESPONSES,
+  RESULTS_EMPTY_ROOM_ID,
+  RESULTS_EMPTY_ROOM_CODE,
+  RESULTS_EMPTY_ROOM_NAME,
+  RESULTS_LIVE_ROOM_ID,
+  RESULTS_LIVE_ROOM_CODE,
+  RESULTS_LIVE_ROOM_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -149,6 +163,30 @@ async function resetResponses(db: Firestore, roomId: string): Promise<void> {
 
   const batch = db.batch();
   snapshot.docs.forEach((docSnapshot) => batch.delete(docSnapshot.ref));
+  await batch.commit();
+}
+
+/**
+ * Siembra respuestas con `occupiedBlocks` conocidos (RC-014 §11): a
+ * diferencia de `ensureResponses`, acá importa **qué** celdas ocupa cada
+ * alumno, porque `results.spec.ts` afirma porcentajes exactos del heatmap.
+ */
+async function seedResponses(db: Firestore, roomId: string, occupiedBlocksPerStudent: number[][]): Promise<void> {
+  if (occupiedBlocksPerStudent.length === 0) return;
+
+  const responsesRef = db.collection('rooms').doc(roomId).collection('responses');
+  const batch = db.batch();
+  occupiedBlocksPerStudent.forEach((occupiedBlocks, index) => {
+    const uid = `e2e-results-student-${index}`;
+    batch.set(responsesRef.doc(uid), {
+      roomId,
+      studentName: `Alumno Resultados ${index + 1}`,
+      occupiedBlocks,
+      createdByUid: uid,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  });
   await batch.commit();
 }
 
@@ -344,4 +382,45 @@ export default async function globalSetup(): Promise<void> {
     createdBy: helper.uid,
     reset: true,
   });
+
+  // Helper dedicado a `results.spec.ts` (RC-014, HU-12). Las tres salas se
+  // resiembran enteras: el spec afirma porcentajes exactos, así que necesita
+  // partir siempre del mismo conjunto de respuestas.
+  const resultsHelper = await ensureHelper(auth, db, {
+    email: RESULTS_HELPER_EMAIL,
+    password: RESULTS_HELPER_PASSWORD,
+    displayName: RESULTS_HELPER_DISPLAY_NAME,
+  });
+
+  await ensureRoom(db, {
+    id: RESULTS_ROOM_ID,
+    code: RESULTS_ROOM_CODE,
+    name: RESULTS_ROOM_NAME,
+    status: 'active',
+    createdBy: resultsHelper.uid,
+    helperBlockedSlots: RESULTS_ROOM_BLOCKED_SLOTS,
+    reset: true,
+  });
+  await resetResponses(db, RESULTS_ROOM_ID);
+  await seedResponses(db, RESULTS_ROOM_ID, RESULTS_ROOM_RESPONSES);
+
+  await ensureRoom(db, {
+    id: RESULTS_EMPTY_ROOM_ID,
+    code: RESULTS_EMPTY_ROOM_CODE,
+    name: RESULTS_EMPTY_ROOM_NAME,
+    status: 'active',
+    createdBy: resultsHelper.uid,
+    reset: true,
+  });
+  await resetResponses(db, RESULTS_EMPTY_ROOM_ID);
+
+  await ensureRoom(db, {
+    id: RESULTS_LIVE_ROOM_ID,
+    code: RESULTS_LIVE_ROOM_CODE,
+    name: RESULTS_LIVE_ROOM_NAME,
+    status: 'active',
+    createdBy: resultsHelper.uid,
+    reset: true,
+  });
+  await resetResponses(db, RESULTS_LIVE_ROOM_ID);
 }

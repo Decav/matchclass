@@ -123,3 +123,35 @@ export const STUDENT_GRID_ROOM_NAME = 'Programación Avanzada · Secc 2';
 export const STUDENT_GRID_CLOSED_ROOM_ID = 'e2e-student-grid-closed';
 export const STUDENT_GRID_CLOSED_ROOM_CODE = 'GRD002';
 export const STUDENT_GRID_CLOSED_ROOM_NAME = 'Redes de Computadores · Secc 1';
+
+/**
+ * Cuenta y salas de `results.spec.ts` (RC-014, HU-12), aisladas del resto.
+ * La sala "con datos" se siembra con respuestas fijas y bloqueos conocidos
+ * para poder afirmar porcentajes exactos; el spec solo lee, nunca escribe
+ * sobre ella (el test de tiempo real usa su propia sala).
+ */
+export const RESULTS_HELPER_EMAIL = 'ayudante.resultados.e2e@matchclass.cl';
+export const RESULTS_HELPER_PASSWORD = 'Test1234!';
+export const RESULTS_HELPER_DISPLAY_NAME = 'Ayudante Resultados E2E';
+
+export const RESULTS_ROOM_ID = 'e2e-results-room';
+export const RESULTS_ROOM_CODE = 'RES001';
+export const RESULTS_ROOM_NAME = 'Álgebra Abstracta · Secc 1';
+/** Bloqueos del ayudante: se muestran en gris con "—" (HU-12 Escenario 1). */
+export const RESULTS_ROOM_BLOCKED_SLOTS = [4, 23, 33];
+/**
+ * 4 respuestas sembradas: la celda 1 la ocupan 3 de 4 (25% → `low`), la
+ * celda 2 la ocupan los 4 (0% → `conflict`), y el resto queda al 100%.
+ */
+export const RESULTS_ROOM_RESPONSES: number[][] = [[1, 2], [1, 2], [1, 2], [2]];
+export const RESULTS_ROOM_TOTAL = RESULTS_ROOM_RESPONSES.length;
+
+/** Sala del mismo ayudante, sin respuestas — Escenario 3 (empty state). */
+export const RESULTS_EMPTY_ROOM_ID = 'e2e-results-empty';
+export const RESULTS_EMPTY_ROOM_CODE = 'RES002';
+export const RESULTS_EMPTY_ROOM_NAME = 'Topología · Secc 1';
+
+/** Sala del test de tiempo real: el alumno responde con la pantalla abierta (Escenario 4). */
+export const RESULTS_LIVE_ROOM_ID = 'e2e-results-live';
+export const RESULTS_LIVE_ROOM_CODE = 'RES003';
+export const RESULTS_LIVE_ROOM_NAME = 'Teoría de Grafos · Secc 1';

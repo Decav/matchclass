@@ -3,6 +3,7 @@ import { healthRoutes } from '@modules/health';
 import { accessRoutes } from '@modules/access';
 import { schedulingRoutes } from '@modules/scheduling';
 import { homeRoutes } from '@modules/home';
+import { resultsRoutes } from '@modules/results';
 import { Q5ProtectedRoute } from '@global/components/q5-protected-route/q5-protected-route';
 
 /**
@@ -15,11 +16,15 @@ import { Q5ProtectedRoute } from '@global/components/q5-protected-route/q5-prote
  * `/dashboard`, la única ruta privada del ayudante que existe hoy. Rutas
  * futuras bajo `/salas/*` (gestión de salas) se agregarán como hijas del
  * mismo layout route cuando existan.
+ *
+ * RC-014 (HU-12) suma `resultsRoutes` bajo ese mismo guard: `/salas/:roomId`
+ * pasó de placeholder en `home` a la pantalla de resultados del módulo
+ * `results`.
  */
 export const router = createBrowserRouter([
   ...healthRoutes,
   ...accessRoutes,
   ...schedulingRoutes,
-  { element: <Q5ProtectedRoute />, children: homeRoutes },
+  { element: <Q5ProtectedRoute />, children: [...homeRoutes, ...resultsRoutes] },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

@@ -1,6 +1,6 @@
 import { LogOut } from 'lucide-react';
 import { useAuthStore } from '@global/store/auth.store';
-import { useLogoutMutation } from '../../core/hooks/use-logout-mutation';
+import { useLogoutMutation } from '@global/hooks/use-logout-mutation';
 
 function getInitials(displayName: string): string {
   const parts = displayName.trim().split(/\s+/).filter(Boolean);
@@ -15,6 +15,11 @@ function getInitials(displayName: string): string {
  * Contenido del `footer` de `Q5AppShell` (RC-008 §9, Escenario 1/6 de
  * HU-06): avatar + nombre + email del ayudante autenticado, y el botón
  * "Cerrar sesión" que reutiliza `useLogoutMutation` (RC-006) sin cambios.
+ *
+ * Vive en `global/` desde RC-014: lo consumen las páginas de `home` y las
+ * de `results`, así que no pertenece a ninguno de los dos módulos. El
+ * logout siempre fue una acción global (HU-04) — haberlo dejado en
+ * `modules/home` fue un error de ubicación inicial, no un diseño.
  */
 export function Q3SidebarUserPanel() {
   const user = useAuthStore((s) => s.user);

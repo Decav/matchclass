@@ -1,7 +1,7 @@
 import { DoorOpen, LayoutDashboard, Users } from 'lucide-react';
 import { Q5AppShell, type Q5NavItem } from '@global/components/q5-app-shell';
 import { Q4DashboardRooms } from '../q4-dashboard-rooms';
-import { Q3SidebarUserPanel } from '../q3-sidebar-user-panel';
+import { Q3SidebarUserPanel } from '@global/components/q3-sidebar-user-panel';
 
 /**
  * Página real de `/dashboard` (RC-008, HU-06) — reemplaza

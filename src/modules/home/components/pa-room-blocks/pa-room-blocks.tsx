@@ -1,7 +1,7 @@
 import { Navigate, useParams } from 'react-router-dom';
 import { DoorOpen, LayoutDashboard, Users } from 'lucide-react';
 import { Q5AppShell, type Q5NavItem } from '@global/components/q5-app-shell';
-import { Q3SidebarUserPanel } from '../q3-sidebar-user-panel';
+import { Q3SidebarUserPanel } from '@global/components/q3-sidebar-user-panel';
 import { Q4RoomBlocksGrid } from '../q4-room-blocks-grid';
 
 // Mismos ítems que `PaDashboard`/`PaCreateRoom` — duplicado a propósito

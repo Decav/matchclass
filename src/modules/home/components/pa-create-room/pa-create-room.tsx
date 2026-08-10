@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DoorOpen, LayoutDashboard, Users } from 'lucide-react';
 import { Q5AppShell, type Q5NavItem } from '@global/components/q5-app-shell';
-import { Q3SidebarUserPanel } from '../q3-sidebar-user-panel';
+import { Q3SidebarUserPanel } from '@global/components/q3-sidebar-user-panel';
 import { Q4CreateRoomForm, type Q4CreateRoomFormSuccess } from '../q4-create-room-form';
 import { Q4RoomCreatedConfirmation } from '../q4-room-created-confirmation';
 

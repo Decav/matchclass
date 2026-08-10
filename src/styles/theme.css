@@ -131,7 +131,10 @@
    * los tokens semánticos — un bloque naranja significa "10–39% de
    * disponibilidad", no "advertencia". Consumido por RC-006.
    * ------------------------------------------------------------------- */
-  --mc-heatmap-high: #34d399;
+  /* `#10b981`, no `#34d399`: es el valor de `tech-document.md` §6 y del
+     frame `Resultados Sala` del .pen. La desviación venía de RC-002 y se
+     corrigió en RC-014 (D3), cuando apareció el primer consumidor real. */
+  --mc-heatmap-high: #10b981;
   --mc-heatmap-medium: #fbbf24;
   --mc-heatmap-low: #f97316;
   --mc-heatmap-conflict: #ef4444;
@@ -1691,4 +1694,289 @@ body {
 
 .mc-save-status--saved .mc-save-status__dot {
   background: var(--mc-success);
+}
+
+/* ---------------------------------------------------------------------
+ * Resultados: heatmap y ranking (RC-014, HU-12). Fuente de verdad visual:
+ * matchclass_design.pen · frame "Resultados Sala" (nodeId nYuX9), leído con
+ * `Get(nodeId, {resolveVariables: true})`. Retícula propia, no la de
+ * `.mc-schedule-*` (RC-010): esas celdas son botones de 52px con dos
+ * estados; estas son celdas de solo lectura de 40px con cinco.
+ * ------------------------------------------------------------------- */
+
+.mc-results-tabs {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.mc-results-tabs__tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 40px;
+  border-bottom: 2px solid var(--mc-border);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-tertiary);
+}
+
+.mc-results-tabs__tab--active {
+  border-bottom-color: var(--mc-brand-primary);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-brand-primary);
+}
+
+.mc-results-columns {
+  display: flex;
+  gap: var(--mc-spacing-6);
+  align-items: flex-start;
+}
+
+.mc-results-columns > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-results-columns__aside {
+  width: 340px;
+  flex-shrink: 0;
+}
+
+.mc-results__title {
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-results__subtitle {
+  font-size: 13px;
+  color: var(--mc-text-secondary);
+}
+
+.mc-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-1);
+  padding: var(--mc-spacing-4);
+  background: var(--mc-card);
+  border-radius: var(--mc-radius-md);
+  transition: background-color var(--mc-transition-slow);
+}
+
+.mc-heatmap__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mc-heatmap__time-header {
+  flex-shrink: 0;
+  width: 72px;
+  height: 24px;
+}
+
+.mc-heatmap__day-header {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  background: var(--mc-schedule-header-bg);
+  border-radius: var(--mc-radius-xs);
+  font-size: var(--mc-text-xs);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-heatmap__time-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex-shrink: 0;
+  width: 72px;
+  font-family: var(--mc-font-mono);
+  font-size: 10px;
+  font-weight: var(--mc-font-medium);
+  color: var(--mc-text-secondary);
+}
+
+/* El texto va siempre en blanco sobre los cinco fondos de la escala: son
+   colores saturados y el porcentaje debe leerse igual en todos. */
+.mc-heatmap__cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-surface-alt);
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-xs);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-inverse);
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-heatmap__cell--high {
+  background: var(--mc-heatmap-high);
+}
+
+.mc-heatmap__cell--medium {
+  background: var(--mc-heatmap-medium);
+}
+
+.mc-heatmap__cell--low {
+  background: var(--mc-heatmap-low);
+}
+
+.mc-heatmap__cell--conflict {
+  background: var(--mc-heatmap-conflict);
+}
+
+.mc-heatmap__cell--blocked {
+  background: var(--mc-heatmap-blocked);
+}
+
+.mc-heatmap__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mc-spacing-4);
+  padding-top: 6px;
+}
+
+.mc-heatmap__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--mc-text-secondary);
+}
+
+.mc-heatmap__legend-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.mc-heatmap__legend-dot--high {
+  background: var(--mc-heatmap-high);
+}
+
+.mc-heatmap__legend-dot--medium {
+  background: var(--mc-heatmap-medium);
+}
+
+.mc-heatmap__legend-dot--low {
+  background: var(--mc-heatmap-low);
+}
+
+.mc-heatmap__legend-dot--conflict {
+  background: var(--mc-heatmap-conflict);
+}
+
+.mc-heatmap__legend-dot--blocked {
+  background: var(--mc-heatmap-blocked);
+}
+
+.mc-ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: var(--mc-spacing-4);
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-md);
+  transition: background-color var(--mc-transition-slow);
+}
+
+/* Badge de posición y de porcentaje: el color sale del `status` del slot,
+   no del puesto (RC-014 D4) — el ranking habla el mismo idioma de color
+   que el mapa. */
+.mc-ranking-item__rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-base);
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-inverse);
+}
+
+.mc-ranking-item__rank--high {
+  background: var(--mc-heatmap-high);
+}
+
+.mc-ranking-item__rank--medium {
+  background: var(--mc-heatmap-medium);
+}
+
+.mc-ranking-item__rank--low {
+  background: var(--mc-heatmap-low);
+}
+
+.mc-ranking-item__rank--conflict {
+  background: var(--mc-heatmap-conflict);
+}
+
+.mc-ranking-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-ranking-item__title {
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-ranking-item__meta {
+  font-size: var(--mc-text-xs);
+  color: var(--mc-text-secondary);
+}
+
+.mc-ranking-item__pct {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  flex-shrink: 0;
+  padding-inline: 10px;
+  border-radius: var(--mc-radius-sm);
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-text-sm);
+  font-weight: var(--mc-font-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-ranking-item__pct--high {
+  background: color-mix(in srgb, var(--mc-heatmap-high) 10%, transparent);
+  color: var(--mc-heatmap-high);
+}
+
+.mc-ranking-item__pct--medium {
+  background: color-mix(in srgb, var(--mc-heatmap-medium) 10%, transparent);
+  color: var(--mc-heatmap-medium);
+}
+
+.mc-ranking-item__pct--low {
+  background: color-mix(in srgb, var(--mc-heatmap-low) 10%, transparent);
+  color: var(--mc-heatmap-low);
+}
+
+.mc-ranking-item__pct--conflict {
+  background: color-mix(in srgb, var(--mc-heatmap-conflict) 10%, transparent);
+  color: var(--mc-heatmap-conflict);
 }

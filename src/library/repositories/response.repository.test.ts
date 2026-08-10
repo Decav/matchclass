@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const {
   getDocMock,
+  getDocsMock,
+  onSnapshotMock,
   setDocMock,
   updateDocMock,
   docMock,
@@ -10,6 +12,8 @@ const {
   getCountFromServerMock,
 } = vi.hoisted(() => ({
   getDocMock: vi.fn(),
+  getDocsMock: vi.fn(),
+  onSnapshotMock: vi.fn(),
   setDocMock: vi.fn(),
   updateDocMock: vi.fn(),
   docMock: vi.fn((...args: unknown[]) => ({ __doc: args })),
@@ -20,6 +24,8 @@ const {
 
 vi.mock('firebase/firestore', () => ({
   getDoc: getDocMock,
+  getDocs: getDocsMock,
+  onSnapshot: onSnapshotMock,
   setDoc: setDocMock,
   updateDoc: updateDocMock,
   doc: docMock,
@@ -34,6 +40,10 @@ vi.mock('firebase/firestore', () => ({
 vi.mock('@library/firebase/firebase-app', () => ({ db: {} }));
 
 import { ResponseRepository } from './response.repository';
+
+function fakeDoc(id: string, data: Record<string, unknown>) {
+  return { id, data: () => data };
+}
 
 describe('ResponseRepository', () => {
   beforeEach(() => {
@@ -132,6 +142,57 @@ describe('ResponseRepository', () => {
 
       const [, payload] = updateDocMock.mock.calls[0] as [unknown, Record<string, unknown>];
       expect(payload).toMatchObject({ occupiedBlocks: [] });
+    });
+  });
+
+  describe('listByRoom', () => {
+    it('mapea todas las respuestas de la sala a la entidad Response, sin any (RC-014 §5)', async () => {
+      getDocsMock.mockResolvedValue({
+        docs: [
+          fakeDoc('uid-1', { roomId: 'room-1', studentName: 'Ana', occupiedBlocks: [1, 2, 99] }),
+          fakeDoc('uid-2', { roomId: 'room-1', studentName: 'Beto', occupiedBlocks: [50] }),
+        ],
+      });
+
+      const responses = await ResponseRepository.listByRoom('room-1');
+
+      expect(responses).toHaveLength(2);
+      expect(responses[0]).toMatchObject({ id: 'uid-1', studentName: 'Ana' });
+      // El mapper descarta lo que cae fuera de 1–50.
+      expect(responses[0]?.occupiedBlocks).toEqual([1, 2]);
+      expect(responses[1]?.occupiedBlocks).toEqual([50]);
+    });
+
+    it('sala sin respuestas devuelve un arreglo vacío', async () => {
+      getDocsMock.mockResolvedValue({ docs: [] });
+      expect(await ResponseRepository.listByRoom('room-vacia')).toEqual([]);
+    });
+  });
+
+  describe('subscribeByRoom', () => {
+    it('entrega cada snapshot ya mapeado y devuelve el unsubscribe del SDK (Escenario 4)', () => {
+      const unsubscribe = vi.fn();
+      // El callback se guarda en una propiedad y no en un `let`: asignarlo
+      // dentro del closure haría que TS estreche la variable a `never` al
+      // llamarla después.
+      const captured: { emit?: (snapshot: { docs: ReturnType<typeof fakeDoc>[] }) => void } = {};
+      onSnapshotMock.mockImplementation(
+        (_ref: unknown, cb: (s: { docs: ReturnType<typeof fakeDoc>[] }) => void) => {
+          captured.emit = cb;
+          return unsubscribe;
+        },
+      );
+
+      const onData = vi.fn();
+      const returned = ResponseRepository.subscribeByRoom('room-1', onData);
+
+      captured.emit?.({ docs: [fakeDoc('uid-1', { studentName: 'Ana', occupiedBlocks: [3] })] });
+
+      expect(onData).toHaveBeenCalledTimes(1);
+      expect(onData.mock.calls[0]?.[0]).toEqual([
+        expect.objectContaining({ id: 'uid-1', studentName: 'Ana', occupiedBlocks: [3] }),
+      ]);
+      expect(returned).toBe(unsubscribe);
     });
   });
 });
