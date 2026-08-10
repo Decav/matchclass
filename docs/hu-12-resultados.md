@@ -61,10 +61,10 @@ La pestana "Respuestas" queda como placeholder para una HU futura.
 
 ### Escenario 1: Heatmap con datos
 
-- **GIVEN** la sala tiene 35 respuestas y el ayudante bloqueo las celdas 23, 34 y 90
+- **GIVEN** la sala tiene 35 respuestas y el ayudante bloqueo las celdas 4, 23 y 33
 - **WHEN** el ayudante abre los resultados
 - **THEN** las 50 celdas muestran su porcentaje numerico con el color correspondiente
-- **AND** las celdas 23, 34 y 90 aparecen en gris con "—" (bloqueado), sin importar el porcentaje real
+- **AND** las celdas 4, 23 y 33 aparecen en gris con "—" (bloqueado), sin importar el porcentaje real
 - **AND** la leyenda muestra los 5 colores con sus umbrales
 
 ### Escenario 2: Ranking Top 3

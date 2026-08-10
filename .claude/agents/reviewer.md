@@ -2,7 +2,7 @@
 name: reviewer
 description: Revisa código frontend React/Next.js detectando bugs, violaciones de arquitectura NDK, problemas de estado y brechas de test. Úsalo después de implementar o antes de cerrar un PR.
 tools: Read, Glob, Grep, Bash
-model: sonnet
+model: opus
 memory: project
 ---
 

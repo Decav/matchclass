@@ -2,7 +2,7 @@
 name: supervisor
 description: Clasifica tu solicitud y decide qué agente usar. Úsalo cuando no sepas a quién delegar o cuando la tarea combine implementación y revisión.
 tools: Read, Glob, Grep
-model: sonnet
+model: opus
 memory: project
 ---
 

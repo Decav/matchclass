@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Implementa features en este frontend React/Next.js siguiendo arquitectura NDK y el RC aprobado. Úsalo cuando tengas un RC en estado approved listo para desarrollar.
-model: sonnet
+model: opus
 memory: project
 ---
 

@@ -1,11 +1,3 @@
-CreateRequirementPrompt.md
-Necesito que crees un requerimiento para la siguiente funcionalidad, Tienes que seguir la estructura del archivo RC-TEMPLATE.md y segun el modulo especificado,
-se debe generar el archivo [rcxxx.md] dentro de la carpeta .claude.requirements.
-
-Requerimiento: 
-
-[
-
 # HU-13: Landing page publica
 
 **Proyecto:** MatchClass
@@ -108,11 +100,3 @@ El campo de codigo redirige al flujo del alumno (tab Alumno en `/acceso`). El li
 - [ ] Si hay sesion activa, redirige automaticamente al dashboard
 - [ ] La interfaz sigue el diseno aprobado en `matchclass_design.pen` (frame `Landing Page`)
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
-
-
-]
-
-Notas: revisar el archivo pencil, para revisar los diseños desktop
-
-Recuerda no implementar nada que no se haga mencion y tambien nunca aplicar cambios sin antes preguntarme, por otro lado si tienes algo que proponer, consultalo conmigo primero para poder aprobarlo o desaprobarlo.
-Limitate siempre a seguir las instrucciones de los archivos .md (CLAUDE.md y skills) y no intentes hacer cambios en archivos que no se mencionen en el requerimiento.
