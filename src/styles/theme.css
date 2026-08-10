@@ -1980,3 +1980,255 @@ body {
   background: color-mix(in srgb, var(--mc-heatmap-conflict) 10%, transparent);
   color: var(--mc-heatmap-conflict);
 }
+
+/* ---------------------------------------------------------------------
+ * Landing pública (RC-015, HU-13). Fuente de verdad visual:
+ * matchclass_design.pen · frame "Landing Page" (nodeId YbL8k), leído con
+ * `Get(nodeId, {resolveVariables: true})`.
+ *
+ * Dos desviaciones deliberadas del nodo, ya resueltas en el RC: el título
+ * "Cómo funciona" viene con `fontFamily: "Funnel Sans"` y acá hereda Inter
+ * (tipografía inviolable del design system), y los textos con `fill:
+ * #FFFFFF` sobre fondo claro —restos de un template oscuro— usan los tokens
+ * de texto que corresponden (`--mc-text-primary` / `--mc-text-secondary`).
+ * ------------------------------------------------------------------- */
+
+.mc-landing {
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--mc-surface);
+}
+
+/* Solo para el spinner de sesión: la landing en sí se alinea arriba. */
+.mc-landing--centered {
+  align-items: center;
+  padding: var(--mc-spacing-6);
+}
+
+.mc-landing__page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 1000px;
+  max-width: 100%;
+}
+
+.mc-landing__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-8);
+  width: 100%;
+  padding: 80px var(--mc-spacing-10) 60px;
+}
+
+.mc-landing__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  background: var(--mc-brand-primary);
+  border-radius: 18px;
+  color: var(--mc-text-on-brand);
+  font-size: 28px;
+  font-weight: var(--mc-font-bold);
+}
+
+.mc-landing__hero-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+  width: 100%;
+  text-align: center;
+}
+
+.mc-landing__title {
+  font-size: 42px;
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-primary);
+}
+
+.mc-landing__tagline {
+  font-size: 18px;
+  color: var(--mc-text-secondary);
+}
+
+.mc-landing__divider {
+  width: 600px;
+  max-width: 100%;
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--mc-border);
+}
+
+.mc-landing__how {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-8);
+  width: 100%;
+  padding: 60px var(--mc-spacing-10);
+}
+
+.mc-landing__how-title {
+  font-size: 28px;
+  font-weight: var(--mc-font-bold);
+  color: var(--mc-text-primary);
+}
+
+.mc-landing__cards {
+  display: flex;
+  gap: var(--mc-spacing-6);
+  width: 100%;
+}
+
+.mc-landing__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mc-spacing-2);
+  width: 100%;
+  padding: var(--mc-spacing-10);
+  font-size: 15px;
+}
+
+.mc-landing__footer-text {
+  color: var(--mc-text-secondary);
+}
+
+/* Navy y no indigo: mismo criterio que los links "Registrarse" y "Volver a
+   Iniciar sesión" del módulo `access` (RC-004/RC-007). */
+.mc-landing__footer-link {
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-brand-primary);
+}
+
+/* Barra de código: no es `Q3CodeInput` (RC-015 §10). El tab Alumno son seis
+   celdas de un carácter; el frame de la landing dibuja un input de texto
+   normal de 460×56 con el botón adosado dentro del padding de 4. */
+.mc-landing-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-2);
+}
+
+.mc-landing-code__bar {
+  display: flex;
+  align-items: center;
+  width: 460px;
+  max-width: 100%;
+  height: 56px;
+  padding: var(--mc-spacing-1);
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: 14px;
+  transition: border-color var(--mc-transition-fast);
+}
+
+/* El input no lleva anillo propio (rompería el marco de la barra): el foco
+   se señala moviendo el borde de la barra completa. */
+.mc-landing-code__bar:focus-within {
+  border-color: var(--mc-border-focus);
+}
+
+.mc-landing-code__bar--error,
+.mc-landing-code__bar--error:focus-within {
+  border-color: var(--mc-danger);
+}
+
+.mc-landing-code__input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding-inline: var(--mc-spacing-4);
+  border: none;
+  background: transparent;
+  font-family: var(--mc-font-sans);
+  font-size: 15px;
+  color: var(--mc-text-primary);
+}
+
+.mc-landing-code__input::placeholder {
+  color: var(--mc-text-tertiary);
+}
+
+.mc-landing-code__input:focus {
+  outline: none;
+}
+
+.mc-landing-code__btn {
+  height: 44px;
+  flex-shrink: 0;
+  padding-inline: var(--mc-spacing-5);
+  border-radius: 10px;
+}
+
+.mc-landing-code__error {
+  font-size: 13px;
+  color: var(--mc-danger-text);
+}
+
+.mc-landing-card {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mc-spacing-4);
+  padding: 28px;
+  background: var(--mc-card);
+  border: 1px solid var(--mc-border);
+  border-radius: var(--mc-radius-lg);
+}
+
+.mc-landing-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 14px;
+}
+
+.mc-landing-card__icon--secondary {
+  background: color-mix(in srgb, var(--mc-brand-secondary) 10%, transparent);
+  color: var(--mc-brand-secondary);
+}
+
+.mc-landing-card__icon--accent {
+  background: color-mix(in srgb, var(--mc-brand-accent) 10%, transparent);
+  color: var(--mc-brand-accent);
+}
+
+.mc-landing-card__icon--high {
+  background: color-mix(in srgb, var(--mc-heatmap-high) 10%, transparent);
+  color: var(--mc-heatmap-high);
+}
+
+.mc-landing-card__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
+}
+
+.mc-landing-card__title {
+  font-size: var(--mc-text-base);
+  font-weight: var(--mc-font-semibold);
+  color: var(--mc-text-primary);
+}
+
+.mc-landing-card__desc {
+  max-width: 220px;
+  font-size: 13px;
+  line-height: var(--mc-leading-normal);
+  color: var(--mc-text-secondary);
+}

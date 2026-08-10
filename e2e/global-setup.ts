@@ -70,6 +70,15 @@ import {
   RESULTS_LIVE_ROOM_ID,
   RESULTS_LIVE_ROOM_CODE,
   RESULTS_LIVE_ROOM_NAME,
+  LANDING_HELPER_EMAIL,
+  LANDING_HELPER_PASSWORD,
+  LANDING_HELPER_DISPLAY_NAME,
+  LANDING_ROOM_ID,
+  LANDING_ROOM_CODE,
+  LANDING_ROOM_NAME,
+  LANDING_CLOSED_ROOM_ID,
+  LANDING_CLOSED_ROOM_CODE,
+  LANDING_CLOSED_ROOM_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -423,4 +432,29 @@ export default async function globalSetup(): Promise<void> {
     reset: true,
   });
   await resetResponses(db, RESULTS_LIVE_ROOM_ID);
+
+  // Helper y salas de `landing.spec.ts` (RC-015, HU-13). El spec solo lee:
+  // la landing valida el código y redirige, sin escribir nada — por eso no
+  // se resiembran con `reset` ni se borran respuestas.
+  const landingHelper = await ensureHelper(auth, db, {
+    email: LANDING_HELPER_EMAIL,
+    password: LANDING_HELPER_PASSWORD,
+    displayName: LANDING_HELPER_DISPLAY_NAME,
+  });
+
+  await ensureRoom(db, {
+    id: LANDING_ROOM_ID,
+    code: LANDING_ROOM_CODE,
+    name: LANDING_ROOM_NAME,
+    status: 'active',
+    createdBy: landingHelper.uid,
+  });
+
+  await ensureRoom(db, {
+    id: LANDING_CLOSED_ROOM_ID,
+    code: LANDING_CLOSED_ROOM_CODE,
+    name: LANDING_CLOSED_ROOM_NAME,
+    status: 'closed',
+    createdBy: landingHelper.uid,
+  });
 }

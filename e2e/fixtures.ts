@@ -155,3 +155,26 @@ export const RESULTS_EMPTY_ROOM_NAME = 'Topología · Secc 1';
 export const RESULTS_LIVE_ROOM_ID = 'e2e-results-live';
 export const RESULTS_LIVE_ROOM_CODE = 'RES003';
 export const RESULTS_LIVE_ROOM_NAME = 'Teoría de Grafos · Secc 1';
+
+/**
+ * Cuenta y salas de `landing.spec.ts` (RC-015, HU-13), aisladas del resto.
+ * Las dos salas son de solo lectura para este spec: la landing únicamente
+ * consulta `findByCode` y redirige, así que no hace falta `reset: true`.
+ * El helper propio existe para el Escenario 5 (sesión activa → `/dashboard`)
+ * sin cruzarse con los specs que corren en paralelo sobre otras cuentas.
+ */
+export const LANDING_HELPER_EMAIL = 'ayudante.landing.e2e@matchclass.cl';
+export const LANDING_HELPER_PASSWORD = 'Test1234!';
+export const LANDING_HELPER_DISPLAY_NAME = 'Ayudante Landing E2E';
+
+export const LANDING_ROOM_ID = 'e2e-landing-room';
+export const LANDING_ROOM_CODE = 'LND001';
+export const LANDING_ROOM_NAME = 'Sistemas Operativos · Secc 1';
+
+/** Sala cerrada: la landing redirige igual y el error lo da `/acceso` (D4). */
+export const LANDING_CLOSED_ROOM_ID = 'e2e-landing-closed';
+export const LANDING_CLOSED_ROOM_CODE = 'LND002';
+export const LANDING_CLOSED_ROOM_NAME = 'Compiladores · Secc 1';
+
+/** Código que ninguna sala sembrada usa — Escenario 3. */
+export const LANDING_UNKNOWN_CODE = 'ZZZZZZ';

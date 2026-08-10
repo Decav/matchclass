@@ -6,7 +6,7 @@ Requerimiento:
 
 [
 
-# HU-13: Landing page publica
+# HU-14: Modo oscuro
 
 **Proyecto:** MatchClass
 
@@ -14,99 +14,106 @@ Requerimiento:
 
 **Prioridad:** Media
 
-**Story Points:** 3
+**Story Points:** 2
 
 ---
 
 ## Narrativa (INVEST)
 
-**Como** visitante,
+**Como** usuario,
 
-**quiero** ver una pagina de inicio que explique que es MatchClass y me permita ingresar un codigo de sala,
+**quiero** alternar entre modo claro y modo oscuro en la plataforma,
 
-**para** entender rapidamente de que se trata la plataforma y entrar directo a una sala si ya tengo un codigo.
+**para** tener una experiencia visual comoda segun mis preferencias o condiciones de luz.
 
 ---
 
 ## Descripcion / Contexto
 
-La landing page (`/`) es la pagina de inicio publica. No requiere autenticacion. Es lo primero que ve cualquier persona.
+Todas las pantallas de MatchClass deben soportar modo claro y modo oscuro. Los tokens de color ya estan definidos en `theme.css` con sus variantes dark bajo el selector `[data-theme="dark"]`. Esta HU implementa el mecanismo de toggle y persistencia.
 
-Tiene dos objetivos:
-1. Explicar que es MatchClass y como funciona (3 cards)
-2. Permitir ingresar un codigo de sala directamente desde la landing
+El toggle se ubica en el topbar del AppShell (area autenticada) y usa el icono de sol/luna de Lucide. La preferencia se guarda en `localStorage` y al cargar la app se respeta la preferencia guardada. Si no hay preferencia guardada, se respeta la configuracion del sistema operativo (`prefers-color-scheme`).
 
-El campo de codigo redirige al flujo del alumno (tab Alumno en `/acceso`). El link "Inicia sesion" redirige a `/acceso` con el tab Ayudante activo.
+El toggle debe ser visible en todas las pantallas que usan AppShell (dashboard, crear sala, restricciones, resultados). Las pantallas publicas (landing, acceso, registro, recuperar) tambien deben reaccionar al tema activo pero no necesitan mostrar el toggle.
 
 ---
 
 ## Especificaciones / Contrato
 
-- **Sin autenticacion:** Ruta publica, accesible sin sesion
-- **Redireccion de codigo:** Si el usuario ingresa un codigo valido en la landing, redirigir a `/acceso?tipo=alumno&codigo=XXX` para precargar el codigo en el tab Alumno
-- **Redireccion de login:** El link "Inicia sesion" redirige a `/acceso`
+- **Mecanismo:** `document.documentElement.setAttribute('data-theme', 'dark')` y `removeAttribute('data-theme')` para claro
+- **Persistencia:** `localStorage.setItem('matchclass-theme', theme)`
+- **Preferencia inicial:**
+    1. Leer `localStorage['matchclass-theme']`
+    2. Si no existe, usar `window.matchMedia('(prefers-color-scheme: dark)').matches`
+    3. Default: claro
+- **Ubicacion del toggle:** Topbar del AppShell, icono sol/luna de Lucide
+- **Sin cambios en CSS:** `theme.css` ya tiene todas las variables definidas para ambos modos
 
 ---
 
 ## Criterios de Aceptacion (Gherkin)
 
-### Escenario 1: Carga de la landing
+### Escenario 1: Alternar a modo oscuro
 
-- **GIVEN** un visitante sin sesion
-- **WHEN** navega a `/`
-- **THEN** se muestra el logo de MatchClass
-- **AND** se muestra el tagline "Coordinacion de ayudantias sin friccion"
-- **AND** se muestra el campo de codigo con placeholder y boton "Entrar"
-- **AND** se muestran las 3 cards de "Como funciona"
-- **AND** se muestra el link "Inicia sesion" al pie
+- **GIVEN** el usuario esta en modo claro (default)
+- **WHEN** presiona el toggle de tema en el topbar
+- **THEN** todas las pantallas cambian a modo oscuro
+- **AND** el fondo, textos, inputs y cards usan los colores dark definidos en `theme.css`
+- **AND** el icono cambia a sol (indicando "cambiar a modo claro")
+- **AND** la preferencia se guarda en `localStorage`
 
-### Escenario 2: Ingreso de codigo valido desde la landing
+### Escenario 2: Alternar a modo claro
 
-- **GIVEN** el visitante esta en la landing
-- **WHEN** ingresa un codigo de sala valido y presiona "Entrar"
-- **THEN** es redirigido a `/acceso?tipo=alumno&codigo=EDS101`
-- **AND** el tab Alumno queda activo con el codigo precargado
+- **GIVEN** el usuario esta en modo oscuro
+- **WHEN** presiona el toggle de tema
+- **THEN** todas las pantallas cambian a modo claro
+- **AND** el icono cambia a luna (indicando "cambiar a modo oscuro")
 
-### Escenario 3: Codigo invalido desde la landing
+### Escenario 3: Persistencia al recargar
 
-- **GIVEN** el visitante esta en la landing
-- **WHEN** ingresa un codigo que no existe y presiona "Entrar"
-- **THEN** el campo muestra borde rojo y mensaje "Codigo invalido. Revisa con tu ayudante"
+- **GIVEN** el usuario selecciono modo oscuro previamente
+- **WHEN** recarga la pagina o cierra y vuelve a abrir la app
+- **THEN** la app carga en modo oscuro automaticamente
+- **AND** el toggle refleja el estado correcto
 
-### Escenario 4: Acceso como ayudante desde la landing
+### Escenario 4: Respetar preferencia del sistema
 
-- **GIVEN** el visitante esta en la landing
-- **WHEN** presiona "Inicia sesion"
-- **THEN** es redirigido a `/acceso`
-- **AND** el tab "Ayudante" aparece activo
+- **GIVEN** el usuario nunca cambio el tema (sin preferencia en localStorage)
+- **AND** su sistema operativo esta en modo oscuro
+- **WHEN** abre la aplicacion por primera vez
+- **THEN** la app carga en modo oscuro
 
-### Escenario 5: Ayudante con sesion activa
+### Escenario 5: Pantallas publicas reaccionan al tema
 
-- **GIVEN** el ayudante ya tiene sesion activa
-- **WHEN** navega a `/`
-- **THEN** es redirigido automaticamente al dashboard (misma logica que HU-03)
+- **GIVEN** el usuario cambio a modo oscuro en el AppShell
+- **WHEN** navega a una pantalla publica (`/acceso`, `/`, `/registro`, `/recuperar`)
+- **THEN** la pantalla se muestra en modo oscuro
+- **AND** los inputs, cards y textos usan los colores del tema activo
+
+### Escenario 6: Contraste WCAG AA en ambos modos
+
+- **GIVEN** la app esta en modo oscuro
+- **THEN** todos los textos mantienen un contraste >= 4.5:1 contra su fondo
+- **AND** los elementos interactivos mantienen contraste >= 3:1
 
 ---
 
 ## Comportamiento Visual (UI/UX)
 
-- **Layout:** Pagina centrada, ancho maximo 1000px. Sin sidebar ni topbar. Fondo `$bg-page`
-- **Hero:** Logo MC + titulo "MatchClass" + tagline + campo de codigo con boton "Entrar"
-- **Cards:** 3 cards en fila con icono, titulo y descripcion: "Crea una sala", "Comparte el codigo", "Descubre el mejor horario"
-- **Footer:** "¿Sos ayudante?" + link "Inicia sesion"
-- **Prioridad desktop:** >= 1024px. Mobile postergado
-- **Idioma:** Espanol neutro, forma "tu"
+- **Toggle:** Icono de sol (modo oscuro activo) o luna (modo claro activo) en el topbar, a la derecha. Tamano 20-22px. Tooltip "Modo oscuro" / "Modo claro"
+- **Transicion:** El cambio de tema debe ser instantaneo, sin animacion de fade
+- **Sin flash:** Al cargar la app, aplicar el tema antes del primer render para evitar un flash blanco
 
 ---
 
 ## Definition of Done (DoD)
 
-- [ ] La landing page se renderiza en `/` sin autenticacion
-- [ ] El campo de codigo valida contra Firestore y redirige a `/acceso` con query params
-- [ ] El codigo invalido muestra error sin redirigir
-- [ ] El link "Inicia sesion" redirige a `/acceso`
-- [ ] Si hay sesion activa, redirige automaticamente al dashboard
-- [ ] La interfaz sigue el diseno aprobado en `matchclass_design.pen` (frame `Landing Page`)
+- [ ] El toggle de tema funciona en todas las pantallas con AppShell
+- [ ] La preferencia persiste en localStorage y se respeta al recargar
+- [ ] Sin preferencia guardada, se usa la configuracion del sistema operativo
+- [ ] Las pantallas publicas reaccionan al tema activo
+- [ ] No hay flash de tema incorrecto al cargar la app
+- [ ] El contraste cumple WCAG AA en ambos modos
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
 
 

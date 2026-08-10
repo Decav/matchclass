@@ -1,1 +1,1 @@
-export { homeRoutes } from './routes/home.routes';
+export { homeRoutes, homePublicRoutes } from './routes/home.routes';

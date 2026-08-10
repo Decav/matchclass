@@ -493,7 +493,7 @@ RC-009 no bloquea a ningún otro RC: puede implementarse en cualquier momento po
 | `$heatmap-high` | `#10B981` | ≥ 70% | Verde esmeralda — disponibilidad alta |
 | `$heatmap-medium` | `#FBBF24` | 40% – 69% | Ámbar — disponibilidad media |
 | `$heatmap-low` | `#F97316` | 10% – 39% | Naranja — disponibilidad baja |
-| `$heatmap-conflict` | `#EF4444` | < 10% | Rojo — conflicto / superposición |
+| `$heatmap-conflict` | `#DC2626` | < 10% | Rojo — conflicto / superposición. Oscurecido desde `#EF4444` en RC-016 (HU-14 D4): con el rojo anterior, el porcentaje en blanco de la celda daba 3.76:1 y no llegaba a AA; con este da 4.83:1 |
 | `$heatmap-blocked` | `#6B7280` | — | Gris — bloqueado por ayudante |
 
 #### Estados UI

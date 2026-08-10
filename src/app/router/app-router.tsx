@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { healthRoutes } from '@modules/health';
 import { accessRoutes } from '@modules/access';
 import { schedulingRoutes } from '@modules/scheduling';
-import { homeRoutes } from '@modules/home';
+import { homeRoutes, homePublicRoutes } from '@modules/home';
 import { resultsRoutes } from '@modules/results';
 import { Q5ProtectedRoute } from '@global/components/q5-protected-route/q5-protected-route';
 
@@ -20,8 +20,13 @@ import { Q5ProtectedRoute } from '@global/components/q5-protected-route/q5-prote
  * RC-014 (HU-12) suma `resultsRoutes` bajo ese mismo guard: `/salas/:roomId`
  * pasó de placeholder en `home` a la pantalla de resultados del módulo
  * `results`.
+ *
+ * RC-015 (HU-13) pone la landing pública en `/` vía `homePublicRoutes` —
+ * fuera de `Q5ProtectedRoute`, a diferencia del resto de `home` — y corre
+ * `healthRoutes` a `/health`.
  */
 export const router = createBrowserRouter([
+  ...homePublicRoutes,
   ...healthRoutes,
   ...accessRoutes,
   ...schedulingRoutes,

@@ -2,6 +2,15 @@ import type { RouteObject } from 'react-router-dom';
 import { PaDashboard } from '../components/pa-dashboard';
 import { PaCreateRoom } from '../components/pa-create-room';
 import { PaRoomBlocks } from '../components/pa-room-blocks';
+import { PaLanding } from '../components/pa-landing';
+
+/**
+ * Rutas públicas del módulo, separadas de `homeRoutes` porque se registran
+ * FUERA de `Q5ProtectedRoute` (RC-015 D1). Hoy solo la landing: `/` no exige
+ * sesión, y el guard del ayudante con sesión activa vive dentro de
+ * `PaLanding`, no en el router.
+ */
+export const homePublicRoutes: RouteObject[] = [{ path: '/', element: <PaLanding /> }];
 
 /**
  * RC-010 reemplaza `PaRoomBlocksPlaceholder` (RC-009) por la grilla real de

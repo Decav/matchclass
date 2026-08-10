@@ -85,7 +85,7 @@ El campo de codigo redirige al flujo del alumno (tab Alumno en `/acceso`). El li
 - **Layout:** Pagina centrada, ancho maximo 1000px. Sin sidebar ni topbar. Fondo `$bg-page`
 - **Hero:** Logo MC + titulo "MatchClass" + tagline + campo de codigo con boton "Entrar"
 - **Cards:** 3 cards en fila con icono, titulo y descripcion: "Crea una sala", "Comparte el codigo", "Descubre el mejor horario"
-- **Footer:** "¿Sos ayudante?" + link "Inicia sesion"
+- **Footer:** "¿Eres ayudante?" + link "Inicia sesion"
 - **Prioridad desktop:** >= 1024px. Mobile postergado
 - **Idioma:** Espanol neutro, forma "tu"
 
