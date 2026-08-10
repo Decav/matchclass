@@ -1,11 +1,3 @@
-CreateRequirementPrompt.md
-Necesito que crees un requerimiento para la siguiente funcionalidad, Tienes que seguir la estructura del archivo RC-TEMPLATE.md y segun el modulo especificado,
-se debe generar el archivo [rcxxx.md] dentro de la carpeta .claude.requirements.
-
-Requerimiento: 
-
-[
-
 # HU-16: Despliegue en Firebase Hosting
 
 **Proyecto:** MatchClass
@@ -31,7 +23,6 @@ Requerimiento:
 ## Descripcion / Contexto
 
 El proyecto ya tiene:
-- Proyecto Firebase con Auth, Firestore (`matchclass-db`) y Hosting configurados
 - URL de produccion: `matchclass.web.app`
 - Build funcionando con `npm run build` → `dist/`
 
@@ -44,7 +35,7 @@ Esta HU cubre la configuracion final de despliegue, las variables de entorno de 
 - **Hosting:** Firebase Hosting sirviendo los archivos estaticos de `dist/`
 - **Plan:** Blaze (disponible) — permite Cloud Functions y Scheduler para HU-15
 - **Build de produccion:** `npm run build` genera `dist/`
-- **Variables de entorno:** Archivo `.env.production` con las claves del proyecto Firebase de produccion (`VITE_FIREBASE_*`)
+- **Firestore:** Base nombrada `matchclass-db` en produccion. `getFirestore(app, "matchclass-db")`. En dev/emuladores se usa `(default)`
 - **Firestore Security Rules:** Desplegar `firestore.rules` con las reglas definidas en `docs/tech-document.md §10`
 - **Firebase Auth:** Proveedor Anonymous habilitado en la consola de Firebase (requerido por HU-01 para el flujo del alumno)
 - **Dominios autorizados:** `matchclass.web.app` y `matchclass.firebaseapp.com` en la configuracion de Auth
@@ -93,7 +84,6 @@ Esta HU cubre la configuracion final de despliegue, las variables de entorno de 
 - **THEN** `.env.production` contiene las claves del proyecto Firebase de produccion
 - **AND** `VITE_FIREBASE_USE_EMULATORS` es `false`
 - **AND** `VITE_APP_ENV` es `production`
-- **AND** `VITE_SENTRY_DSN` esta configurado
 
 ### Escenario 6: Redirects de SPA
 
@@ -115,11 +105,3 @@ Esta HU cubre la configuracion final de despliegue, las variables de entorno de 
 - [ ] El flujo completo (registro → sala → respuesta → heatmap) funciona en produccion
 - [ ] Los enlaces de sala compartidos funcionan con el dominio de produccion
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
-
-
-]
-
-Notas: revisar el archivo pencil, para revisar los diseños desktop
-
-Recuerda no implementar nada que no se haga mencion y tambien nunca aplicar cambios sin antes preguntarme, por otro lado si tienes algo que proponer, consultalo conmigo primero para poder aprobarlo o desaprobarlo.
-Limitate siempre a seguir las instrucciones de los archivos .md (CLAUDE.md y skills) y no intentes hacer cambios en archivos que no se mencionen en el requerimiento.

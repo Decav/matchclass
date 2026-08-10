@@ -31,9 +31,9 @@ Esta HU no bloquea el lanzamiento. Puede diferirse hasta despues del primer seme
 ## Especificaciones / Contrato
 
 - **Ejecucion:** Cloud Function programada via Cloud Scheduler (ej: diaria a las 3 AM)
-- **Criterio de eliminacion:** Cuentas anonimas sin actividad en los ultimos **90 dias** (basado en `lastRefreshTime` del usuario)
+- **Criterio de eliminacion:** Cuentas anonimas sin actividad en los ultimos **90 dias**. Usar `lastRefreshTime ?? creationTime` como referencia (un alumno que responde una vez y no vuelve puede no tener `lastRefreshTime`)
 - **Exclusion:** No eliminar cuentas cuya sala asociada siga en estado `active` (para no perder datos de matching activo)
-- **Identificacion de cuentas anonimas:** Filtrar usuarios de Firebase Auth donde `providerData` solo contenga `anonymous`
+- **Identificacion de cuentas anonimas:** Filtrar usuarios de Firebase Auth donde `providerData.length === 0 && !email && !phoneNumber` (en Admin SDK los usuarios anonimos tienen `providerData: []`, no un provider con tipo `anonymous` como en el SDK cliente)
 - **Registro:** Loggear la cantidad de cuentas eliminadas en cada ejecucion
 - **Cascada:** Al eliminar una cuenta anonima, sus documentos de respuesta en `rooms/{roomId}/responses/{uid}` se mantienen (datos de matching son mas valiosos que el cleanup perfecto)
 
