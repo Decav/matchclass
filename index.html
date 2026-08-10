@@ -16,6 +16,36 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
     />
+
+    <!--
+      Anti-flash del tema (RC-016, D1). Corre antes del bundle, así que
+      `data-theme` ya está aplicado cuando el navegador pinta el primer frame:
+      sin esto la app muestra un frame en claro antes de que React monte.
+
+      Duplica a propósito la lógica de `getInitialTheme()` de
+      `src/global/hooks/use-theme.ts`, que es la fuente de verdad: este script
+      no puede importar del bundle porque se ejecuta antes que él. Si cambia la
+      clave de storage o el orden de precedencia, hay que actualizar los dos.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('matchclass-theme');
+          var theme =
+            stored === 'dark' || stored === 'light'
+              ? stored
+              : window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (error) {
+          // localStorage bloqueado (navegación privada, cookies de terceros):
+          // se cae al tema claro por defecto en vez de romper la carga.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

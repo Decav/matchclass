@@ -13,8 +13,14 @@ import { router } from '../router/app-router';
  * y Q2InputField NO dependen de `.p-button`/`.p-inputtext` para su apariencia,
  * usan las clases `.mc-btn`/`.mc-form-input` de theme.css directamente.
  *
- * ThemeProvider aplica `data-theme` en `<html>` antes de que PrimeReact y el
- * router rendericen, para que no haya parpadeo del tema por defecto.
+ * ThemeProvider NO es lo que evita el parpadeo del tema: cuando este árbol
+ * monta, el navegador ya pintó al menos un frame. Quien aplica `data-theme`
+ * a tiempo es el script inline del `<head>` de `index.html` (RC-016 D1), que
+ * corre antes del bundle. `useTheme` solo mantiene sincronizado el estado de
+ * React con ese atributo y, vía `useLayoutEffect`, aplica los cambios
+ * posteriores del toggle antes del pintado siguiente. Va arriba de todo
+ * igualmente para que PrimeReact y el router lean los tokens del tema activo
+ * desde su primer render.
  *
  * AuthProvider (RC-003) va por dentro de QueryClientProvider y por fuera de
  * RouterProvider: se suscribe a `onAuthStateChanged` apenas monta la app,
