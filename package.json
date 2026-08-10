@@ -18,7 +18,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "functions:type-check": "npm --prefix functions run type-check",
+    "functions:test": "npm --prefix functions run test",
+    "functions:build": "npm --prefix functions run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",

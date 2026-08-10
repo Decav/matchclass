@@ -20,15 +20,21 @@ No commitear directo sobre `develop` sin que el usuario lo pida: crear rama y ab
 
 ## Firebase
 
-> **POR DEFINIR.** Completar cuando existan los proyectos de Firebase.
+- **Proyecto:** `matchclass` (`.firebaserc` alias `default`; `VITE_FIREBASE_PROJECT_ID` en `.env.local`)
+- **Plan:** Blaze — habilita Cloud Functions v2 y Cloud Scheduler
+- **Staging / prod separados:** no existen todavia. **Hay un solo proyecto**, y es el real
+- **Emuladores locales:** `npm run emulators` (`firebase emulators:start --only auth,firestore`, auth 9099 / firestore 8080, UI 4000)
 
-- **Proyecto dev:** `<POR DEFINIR>`
-- **Proyecto staging:** `<POR DEFINIR>`
-- **Proyecto prod:** `<POR DEFINIR>`
-- **Emuladores locales:** `firebase emulators:start --only auth,firestore` (auth 9099 / firestore 8080)
+Todo lo automatizado corre contra los emuladores: los tests unitarios mockean repositorios y los e2e
+usan los emuladores con datos sembrados por `e2e/global-setup.ts`. **Nada de CI ni de scripts apunta
+al proyecto real.**
 
-Un proyecto de Firebase por ambiente. Las claves web (`VITE_FIREBASE_*`) son publicas por diseno:
-lo que protege los datos son las Firestore Security Rules, no ocultar el `apiKey`.
+Sin un ambiente de staging, cualquier operacion destructiva contra `matchclass` es irreversible y sin
+red: `firebase deploy` y los jobs que borran datos (ej. la limpieza de cuentas anonimas, RC-017) son
+pasos manuales del usuario, nunca de la IA, y se ejecutan despues de revisar una corrida en dry-run.
+
+Las claves web (`VITE_FIREBASE_*`) son publicas por diseno: lo que protege los datos son las Firestore
+Security Rules, no ocultar el `apiKey`.
 
 ## Carga condicional
 

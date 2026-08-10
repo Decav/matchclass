@@ -1,0 +1,20 @@
+{
+  /*
+   * Config de *desarrollo*: los mismos flags que el build, pero incluyendo los
+   * tests y la config de vitest, y sin emitir.
+   *
+   * Existe porque `tsconfig.json` excluye los tests para no meterlos en `lib/`,
+   * y ESLint con reglas type-checked necesita que TODO archivo que lintea este
+   * dentro de algun proyecto de TypeScript. `npm run type-check` de este
+   * workspace y el `parserOptions.project` de `functions/**` en el
+   * `eslint.config.js` de la raiz apuntan aca.
+   */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    /* Sin emision no hay `outDir`, y `vitest.config.ts` vive fuera de `src`. */
+    "rootDir": "."
+  },
+  "include": ["src", "vitest.config.mts"],
+  "exclude": []
+}

@@ -29,7 +29,11 @@ export default defineConfig({
     environment: 'jsdom',
     passWithNoTests: true,
     setupFiles: ['./src/test/setup.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    // `functions/**` queda fuera a proposito (RC-017 §10 D1): el workspace de
+    // Cloud Functions corre en Node contra firebase-admin, no en jsdom, y no
+    // usa este `setupFiles` de browser. Tiene su propio `vitest.config.mts`,
+    // que se ejecuta con `npm run test:functions`.
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**', 'functions/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

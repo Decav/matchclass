@@ -8,6 +8,8 @@ dist/
 dist-ssr/
 build/
 *.local
+# Salida compilada del workspace de Cloud Functions (RC-017)
+functions/lib/
 
 # Variables de entorno — nunca versionar
 # .env.example SI se versiona (es el template)

@@ -16,11 +16,16 @@ export default tseslint.config(
       // Plantillas de referencia de las skills: no son codigo del proyecto
       // y no estan en ningun tsconfig.
       '.claude/**',
+      // Salida compilada del workspace de Cloud Functions (RC-017)
+      'functions/lib',
     ],
   },
 
   {
     files: ['**/*.{ts,tsx}'],
+    // El workspace `functions/` se lintea en su propio bloque, mas abajo: no
+    // es codigo de browser, no tiene React y vive en otro tsconfig.
+    ignores: ['functions/**'],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
@@ -151,6 +156,45 @@ export default tseslint.config(
     files: ['src/global/providers/**/*.{ts,tsx}'],
     rules: {
       'react-refresh/only-export-components': 'off',
+    },
+  },
+
+  // Workspace de Cloud Functions (RC-017 §10 D1). Se lintea desde la raiz —un
+  // solo `npm run lint` para todo el repo, sin duplicar la toolchain de ESLint
+  // dentro de `functions/`— pero con su propia configuracion: corre en Node,
+  // no tiene React ni JSX, y sus archivos pertenecen a `functions/
+  // tsconfig.dev.json`, no a los tsconfig de la app. Sin este bloque, las
+  // reglas type-checked fallarian con "file not found in any project".
+  {
+    files: ['functions/**/*.{ts,mts}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked, prettier],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.node,
+      parserOptions: {
+        project: ['./functions/tsconfig.dev.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' },
+      ],
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      // En Cloud Functions el log estructurado va por `firebase-functions/
+      // logger`; `console.warn` queda solo para avisos de los tests locales.
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
 );

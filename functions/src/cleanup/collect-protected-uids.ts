@@ -1,6 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.collectProtectedUids = collectProtectedUids;
+import type { Firestore } from 'firebase-admin/firestore';
+
 /**
  * Devuelve los uids que respondieron en alguna sala todavia `active`: las
  * cuentas que el job no puede tocar aunque lleven meses sin refrescar el token
@@ -20,15 +19,19 @@ exports.collectProtectedUids = collectProtectedUids;
  * (RC-017 §4): sin la lista de protegidos no hay forma de distinguir una cuenta
  * viva de una muerta, y equivocarse no se deshace.
  */
-async function collectProtectedUids(db) {
-    const activeRooms = await db.collection('rooms').where('status', '==', 'active').select().get();
-    const responseSnapshots = await Promise.all(activeRooms.docs.map((room) => room.ref.collection('responses').select().get()));
-    const protectedUids = new Set();
-    for (const snapshot of responseSnapshots) {
-        for (const response of snapshot.docs) {
-            protectedUids.add(response.id);
-        }
+export async function collectProtectedUids(db: Firestore): Promise<Set<string>> {
+  const activeRooms = await db.collection('rooms').where('status', '==', 'active').select().get();
+
+  const responseSnapshots = await Promise.all(
+    activeRooms.docs.map((room) => room.ref.collection('responses').select().get()),
+  );
+
+  const protectedUids = new Set<string>();
+  for (const snapshot of responseSnapshots) {
+    for (const response of snapshot.docs) {
+      protectedUids.add(response.id);
     }
-    return protectedUids;
+  }
+
+  return protectedUids;
 }
-//# sourceMappingURL=collect-protected-uids.js.map
