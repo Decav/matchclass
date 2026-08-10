@@ -1,0 +1,25 @@
+{
+  "name": "matchclass-functions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloud Functions de MatchClass (RC-017: limpieza de cuentas anonimas)",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc --noEmit -p tsconfig.dev.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "^7.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

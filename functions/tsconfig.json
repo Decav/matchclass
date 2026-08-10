@@ -1,0 +1,43 @@
+{
+  /*
+   * Config de *build* del workspace `functions`. Emite a `lib/` y deja fuera
+   * los tests: el bundle que se despliega no debe arrastrar vitest.
+   *
+   * Es independiente de `tsconfig.app.json` de la raiz a proposito (RC-017
+   * §10 D1): aquel solo incluye `src/`, apunta a DOM y usa `moduleResolution:
+   * bundler`, que no sirve para un artefacto de Node que se ejecuta en Cloud
+   * Functions.
+   *
+   * `module`/`moduleResolution: node16` en vez del `commonjs` clasico del
+   * template de Firebase: firebase-admin solo publica `lib/` y expone
+   * `firebase-admin/auth` via el mapa `exports`, que la resolucion `node10`
+   * ignora. Como este package.json no declara `"type": "module"`, node16
+   * sigue emitiendo CommonJS, que es lo que espera el runtime de Functions.
+   */
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node"],
+
+    "outDir": "lib",
+    "rootDir": "src",
+    "sourceMap": true,
+    "declaration": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Strict — misma exigencia que la app cliente (CLAUDE.md: sin `any`) */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/test/**"]
+}
