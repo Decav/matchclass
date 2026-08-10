@@ -80,7 +80,17 @@
    * ------------------------------------------------------------------- */
   --mc-text-primary: #1f2937;
   --mc-text-secondary: #6b7280;
-  --mc-text-tertiary: #9ca3af;
+  /* RC-016 (D3): era `#9ca3af`, que daba 2.54:1 sobre `--mc-card` y 2.43:1
+     sobre `--mc-surface` — muy por debajo del 4.5:1 de WCAG AA para texto
+     normal. Ahora da 4.72:1 sobre card y 4.52:1 sobre surface/surface-alt.
+
+     Desviación del valor literal de la D3 (`#6f7887`), que se queda en 4.46 y
+     4.26 y no llega a AA: la D3 lo eligió para no colapsar el token sobre
+     `--mc-text-secondary` (#6b7280), pero medido en CIELAB `#6f7887` ya está
+     a ΔE 2.42 del secundario — la jerarquía en modo claro ya se perdía con él,
+     y `#6b7482` solo agrega ΔE 1.71 más (imperceptible) a cambio de cumplir el
+     criterio de §9. Ver `theme-contrast.test.ts`. */
+  --mc-text-tertiary: #6b7482;
   --mc-text-body: #4b5563;
   --mc-text-strong: #374151;
   --mc-text-disabled: #d1d5db;
@@ -137,7 +147,10 @@
   --mc-heatmap-high: #10b981;
   --mc-heatmap-medium: #fbbf24;
   --mc-heatmap-low: #f97316;
-  --mc-heatmap-conflict: #ef4444;
+  /* RC-016 (D4): era `#ef4444`, con el que el porcentaje en blanco de la celda
+     quedaba en 3.76:1. `#dc2626` lo lleva a 4.83:1 y cumple AA. Es el valor de
+     `tech-document.md` §6. */
+  --mc-heatmap-conflict: #dc2626;
   --mc-heatmap-blocked: #6b7280;
 
   /* ---------------------------------------------------------------------
@@ -259,7 +272,10 @@
   /* Texto */
   --mc-text-primary: #f3f4f6;
   --mc-text-secondary: #9ca3af;
-  --mc-text-tertiary: #6b7280;
+  /* RC-016 (D3): era `#6b7280`, que sobre `--mc-card` daba 2.94:1. `#8b94a1`
+     llega a 4.64:1 sobre card, 5.83:1 sobre surface y 5.17:1 sobre
+     surface-alt — AA en las tres superficies del modo oscuro. */
+  --mc-text-tertiary: #8b94a1;
   --mc-text-body: #d1d5db;
   --mc-text-strong: #e5e7eb;
   --mc-text-disabled: #4b5563;
