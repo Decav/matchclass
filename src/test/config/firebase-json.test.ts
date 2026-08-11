@@ -83,11 +83,29 @@ describe('firebase.json', () => {
     expect(cacheControl?.value).toContain('immutable');
   });
 
-  it('sirve index.html sin cache, para que un deploy nuevo se vea enseguida', () => {
-    const indexHtml = config.hosting.headers.find((entry) => entry.source === '/index.html');
-    const cacheControl = indexHtml?.headers.find((header) => header.key === 'Cache-Control');
+  /**
+   * El `source` es `**` y no `/index.html` (verificado contra el sitio
+   * publicado el 2026-08-10): Hosting matchea los headers contra la URL
+   * pedida, no contra el archivo que termina sirviendo. Con `/index.html`,
+   * `/` y todas las rutas de la SPA caían en el default de `max-age=3600`,
+   * así que la regla no llegaba a ningún visitante real.
+   */
+  it('sirve el HTML sin cache en cualquier ruta, para que un deploy nuevo se vea enseguida', () => {
+    const catchAll = config.hosting.headers.find((entry) => entry.source === '**');
+    const cacheControl = catchAll?.headers.find((header) => header.key === 'Cache-Control');
 
     expect(cacheControl?.value).toContain('no-cache');
+  });
+
+  /**
+   * El orden importa: la regla específica de `/assets/**` va después del
+   * catch-all para que gane sobre él. Verificado con `curl` contra el sitio
+   * publicado, no deducido de la documentación.
+   */
+  it('declara el catch-all antes de la regla de /assets/**', () => {
+    const sources = config.hosting.headers.map((entry) => entry.source);
+
+    expect(sources.indexOf('**')).toBeLessThan(sources.indexOf('/assets/**'));
   });
 
   it('apunta las reglas a la base nombrada `matchclass-db`', () => {
