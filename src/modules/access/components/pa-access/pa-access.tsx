@@ -9,6 +9,12 @@ import { Q5AccessTabs } from '../q5-access-tabs/q5-access-tabs';
  * renderiza tabs (spinner con logo, evita el flash de login — Escenario 4).
  * Con sesión de ayudante ya activa, redirige a `/dashboard` sin mostrar el
  * formulario.
+ *
+ * `p-4 md:p-6` (RC-020 §6): en 375px los 24px de desktop dejaban la card con
+ * 279px útiles y las seis celdas del código de sala necesitan 304 —el ancho de
+ * celda de 44px es un mínimo táctil y no se negocia—, así que el tab Alumno
+ * desbordaba en horizontal. Con 16px de padding entran justas. Mismo cambio en
+ * `/registro` y `/recuperar`, que comparten la card.
  */
 export function PaAccess() {
   const status = useAuthStore((s) => s.status);
@@ -16,7 +22,7 @@ export function PaAccess() {
   if (status === AuthStatus.Idle || status === AuthStatus.Loading) {
     return (
       <main
-        className="min-h-screen flex items-center justify-center p-6"
+        className="min-h-screen flex items-center justify-center p-4 md:p-6"
         style={{ background: 'var(--mc-surface)' }}
       >
         <Q1LoadingSpinner size="lg" label="Cargando MatchClass…" />
@@ -30,7 +36,7 @@ export function PaAccess() {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center p-6"
+      className="min-h-screen flex items-center justify-center p-4 md:p-6"
       style={{ background: 'var(--mc-surface)' }}
     >
       <Q5AccessTabs />

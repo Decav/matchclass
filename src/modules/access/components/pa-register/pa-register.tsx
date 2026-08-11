@@ -8,7 +8,7 @@ import { Q4RegisterForm } from '../q4-register-form/q4-register-form';
 export function PaRegister() {
   return (
     <main
-      className="min-h-screen flex items-center justify-center p-6"
+      className="min-h-screen flex items-center justify-center p-4 md:p-6"
       style={{ background: 'var(--mc-surface)' }}
     >
       <div className="mc-card mc-access-card">

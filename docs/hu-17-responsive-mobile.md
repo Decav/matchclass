@@ -1,11 +1,3 @@
-CreateRequirementPrompt.md
-Necesito que crees un requerimiento para la siguiente funcionalidad, Tienes que seguir la estructura del archivo RC-TEMPLATE.md y segun el modulo especificado,
-se debe generar el archivo [rcxxx.md] dentro de la carpeta .claude.requirements.
-
-Requerimiento: 
-
-[
-
 # HU-17: Diseño responsive mobile
 
 **Proyecto:** MatchClass
@@ -86,7 +78,7 @@ Esta HU cubre la adaptacion mobile de todas las pantallas existentes, priorizand
 
 | Adaptacion | Descripcion |
 |---|---|
-| Columnas | Apilar: heatmap arriba, ranking abajo |
+| Columnas | Apilar: ranking arriba, heatmap abajo. Lo primero que ve el ayudante es la respuesta que busca |
 | Leyenda | Reducir o colapsar |
 
 ---
@@ -129,7 +121,7 @@ Esta HU cubre la adaptacion mobile de todas las pantallas existentes, priorizand
 - **AND** los botones del menu (Dashboard, Mis salas, Cerrar sesion) son funcionales y responden al toque
 - **AND** al tocar un item del menu, el sidebar se cierra y navega correctamente
 - **AND** al tocar el overlay fuera del sidebar, el sidebar se cierra
-- **AND** el overlay se elimina completamente del DOM al cerrarse — no queda una pantalla negra residual bloqueando la interaccion
+- **AND** el sidebar tiene mayor z-index que el overlay — los toques sobre los items del menu no son capturados por la capa de fondo
 
 ### Escenario 5: Dashboard en mobile
 
@@ -149,12 +141,13 @@ Esta HU cubre la adaptacion mobile de todas las pantallas existentes, priorizand
 
 ## Comportamiento Visual (UI/UX)
 
-- **Breakpoint mobile:** < 768px. Tablet/desktop: >= 768px
+- **Breakpoints:** Sidebar fijo desde 1024px (tablet estrecha no tiene sidebar fijo). Reflow de contenido desde 768px
 - **Sidebar:** Overlay con fondo semi-transparente, animacion de deslizamiento desde la izquierda, z-index sobre el contenido
 - **Grillas:** Scroll horizontal nativo. Sombra o gradiente en el borde derecho como affordance. Header de dias sticky
 - **Cards:** Full-width, sin margenes laterales desperdiciados
 - **Tipografia:** Sin cambios — Inter y JetBrains Mono mantienen sus tamanos
 - **Colores:** Sin cambios — la paleta es la misma
+- **Sin diseno de referencia:** `matchclass_design.pen` no tiene frames mobile — todas las HU anteriores declararon "Mobile postergado". Esta HU es **adaptacion de implementacion**, no replica de un diseno: las reglas de esta seccion y la tabla de "Alcance por pantalla" son el contrato visual
 
 ---
 
@@ -162,16 +155,10 @@ Esta HU cubre la adaptacion mobile de todas las pantallas existentes, priorizand
 
 - [ ] La landing page se ve correctamente en viewport de 375px (iPhone SE) sin scroll horizontal
 - [ ] Las grillas de 50 celdas tienen scroll horizontal funcional en mobile
-- [ ] El sidebar del AppShell funciona como overlay en mobile (< 768px): se abre, los botones del menu funcionan, y se cierra correctamente sin dejar pantalla negra residual
+- [ ] Sidebar mobile: z-index del sidebar por encima del overlay. Los items del menu son funcionales y responden al toque
 - [ ] Todas las pantallas de auth (acceso, registro, recuperar) se adaptan a mobile
 - [ ] El dashboard y las pantallas internas se adaptan a mobile
 - [ ] Los elementos interactivos cumplen area tactil minima de 44x44px
 - [ ] No hay scroll horizontal indeseado en ninguna pantalla
+- [ ] Los escenarios estan cubiertos por un spec E2E propio de mobile (viewport 375x667), sin duplicar la suite desktop existente
 - [ ] La HU cumple con los criterios de aceptacion validados por QA
-
-]
-
-Notas: revisar el archivo pencil, para revisar los diseños desktop
-
-Recuerda no implementar nada que no se haga mencion y tambien nunca aplicar cambios sin antes preguntarme, por otro lado si tienes algo que proponer, consultalo conmigo primero para poder aprobarlo o desaprobarlo.
-Limitate siempre a seguir las instrucciones de los archivos .md (CLAUDE.md y skills) y no intentes hacer cambios en archivos que no se mencionen en el requerimiento.

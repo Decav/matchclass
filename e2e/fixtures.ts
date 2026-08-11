@@ -178,3 +178,18 @@ export const LANDING_CLOSED_ROOM_NAME = 'Compiladores · Secc 1';
 
 /** Código que ninguna sala sembrada usa — Escenario 3. */
 export const LANDING_UNKNOWN_CODE = 'ZZZZZZ';
+
+/**
+ * Sala propia de `mobile.spec.ts` (RC-020, HU-17). Existe aparte de
+ * `STUDENT_GRID_ROOM_*` porque entrar como alumno **escribe**: el paso del
+ * nombre crea el documento de respuesta antes de mostrar la grilla. Compartir la
+ * sala metería respuestas ajenas en el conjunto que afirma otro spec, y los dos
+ * corren en paralelo (`fullyParallel: true`).
+ *
+ * Se resiembra con `reset: true` y se le borran las respuestas: el uid anónimo
+ * es distinto en cada corrida, así que sin el borrado el run siguiente arrancaría
+ * con celdas ya marcadas.
+ */
+export const MOBILE_GRID_ROOM_ID = 'e2e-mobile-grid';
+export const MOBILE_GRID_ROOM_CODE = 'MOB001';
+export const MOBILE_GRID_ROOM_NAME = 'Cálculo Diferencial · Secc 8';

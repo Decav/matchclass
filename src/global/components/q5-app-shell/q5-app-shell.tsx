@@ -58,10 +58,13 @@ export function Q5AppShell({ children, navItems = [], footer, title }: Q5AppShel
 
   return (
     <div className="mc-app-shell">
-      {/* Overlay mobile */}
+      {/* Overlay mobile. El z-index vive en `.mc-sidebar-overlay` (theme.css) y
+          no en utilidades Tailwind: RC-020 D1 lo agrupa con el del sidebar para
+          que la relación entre las dos capas sea legible y testeable en un solo
+          lugar. Se desmonta al cerrar, así no queda nada cubriendo la pantalla. */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 lg:hidden z-[var(--mc-z-overlay)]"
+          className="mc-sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         />

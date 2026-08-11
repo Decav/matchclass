@@ -31,52 +31,57 @@ const BLOCKED_TEXT = '—';
 export function Q3HeatmapGrid({ heatmap }: Q3HeatmapGridProps) {
   return (
     <div className="mc-heatmap">
-      <div className="mc-heatmap__row">
-        <div className="mc-heatmap__time-header" aria-hidden="true" />
-        {USM_SCHEDULE_DAYS.map((day) => (
-          <div key={day} className="mc-heatmap__day-header">
-            {day}
+      {/* Contenedor de scroll horizontal (RC-020 §6). La leyenda queda fuera:
+          reflowea con `flex-wrap` y no tiene por qué desplazarse con la
+          retícula. */}
+      <div className="mc-heatmap__scroll">
+        <div className="mc-heatmap__row">
+          <div className="mc-heatmap__time-header" aria-hidden="true" />
+          {USM_SCHEDULE_DAYS.map((day) => (
+            <div key={day} className="mc-heatmap__day-header">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {USM_SCHEDULE_BLOCKS.map((block, rowIndex) => (
+          <div key={block.blockNumber} className="mc-heatmap__row">
+            <div className="mc-heatmap__time-col">
+              {block.isVespertine ? (
+                <span>Vespertino</span>
+              ) : (
+                <>
+                  <span>{block.startTime}</span>
+                  <span>{block.endTime}</span>
+                </>
+              )}
+            </div>
+
+            {USM_SCHEDULE_DAYS.map((day, columnIndex) => {
+              const cell = rowIndex * USM_SCHEDULE_DAYS.length + columnIndex + 1;
+              const entry = heatmap.find((item) => item.block === cell);
+              if (!entry) return <div key={cell} className="mc-heatmap__cell" />;
+
+              const isBlocked = entry.status === HeatmapStatus.Blocked;
+              const percentage = Math.round(entry.percentage);
+
+              return (
+                <div
+                  key={cell}
+                  className={`mc-heatmap__cell mc-heatmap__cell--${entry.status}`}
+                  aria-label={
+                    isBlocked
+                      ? `${day}, ${entry.timeRange}: bloqueado`
+                      : `${day}, ${entry.timeRange}: ${percentage}% disponible, ${entry.available} de ${entry.total} alumnos`
+                  }
+                >
+                  {isBlocked ? BLOCKED_TEXT : `${percentage}%`}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
-
-      {USM_SCHEDULE_BLOCKS.map((block, rowIndex) => (
-        <div key={block.blockNumber} className="mc-heatmap__row">
-          <div className="mc-heatmap__time-col">
-            {block.isVespertine ? (
-              <span>Vespertino</span>
-            ) : (
-              <>
-                <span>{block.startTime}</span>
-                <span>{block.endTime}</span>
-              </>
-            )}
-          </div>
-
-          {USM_SCHEDULE_DAYS.map((day, columnIndex) => {
-            const cell = rowIndex * USM_SCHEDULE_DAYS.length + columnIndex + 1;
-            const entry = heatmap.find((item) => item.block === cell);
-            if (!entry) return <div key={cell} className="mc-heatmap__cell" />;
-
-            const isBlocked = entry.status === HeatmapStatus.Blocked;
-            const percentage = Math.round(entry.percentage);
-
-            return (
-              <div
-                key={cell}
-                className={`mc-heatmap__cell mc-heatmap__cell--${entry.status}`}
-                aria-label={
-                  isBlocked
-                    ? `${day}, ${entry.timeRange}: bloqueado`
-                    : `${day}, ${entry.timeRange}: ${percentage}% disponible, ${entry.available} de ${entry.total} alumnos`
-                }
-              >
-                {isBlocked ? BLOCKED_TEXT : `${percentage}%`}
-              </div>
-            );
-          })}
-        </div>
-      ))}
 
       <div className="mc-heatmap__legend">
         {LEGEND.map(({ status, label }) => (

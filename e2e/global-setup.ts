@@ -79,6 +79,9 @@ import {
   LANDING_CLOSED_ROOM_ID,
   LANDING_CLOSED_ROOM_CODE,
   LANDING_CLOSED_ROOM_NAME,
+  MOBILE_GRID_ROOM_ID,
+  MOBILE_GRID_ROOM_CODE,
+  MOBILE_GRID_ROOM_NAME,
 } from './fixtures';
 
 const PROJECT_ID = 'matchclass';
@@ -457,4 +460,17 @@ export default async function globalSetup(): Promise<void> {
     status: 'closed',
     createdBy: landingHelper.uid,
   });
+
+  // Sala de `mobile.spec.ts` (RC-020, HU-17), del helper genérico. Aislada de
+  // `STUDENT_GRID_ROOM_ID` porque entrar como alumno escribe una respuesta con
+  // el nombre, y los dos specs corren en paralelo.
+  await ensureRoom(db, {
+    id: MOBILE_GRID_ROOM_ID,
+    code: MOBILE_GRID_ROOM_CODE,
+    name: MOBILE_GRID_ROOM_NAME,
+    status: 'active',
+    createdBy: helper.uid,
+    reset: true,
+  });
+  await resetResponses(db, MOBILE_GRID_ROOM_ID);
 }

@@ -51,54 +51,60 @@ export function Q3ScheduleGrid({
 }: Q3ScheduleGridProps) {
   return (
     <div className="mc-schedule-grid">
-      <div className="mc-schedule-grid__row">
-        <div className="mc-schedule-header-cell" aria-hidden="true">
-          Horario
+      {/* El scroll horizontal de mobile (RC-020 §6) vive en este contenedor
+          interno, no en `.mc-schedule-grid`: así el padding y el degradado de
+          affordance de la tarjeta no se desplazan con el contenido, y la
+          columna de horarios se fija al borde interno de la tarjeta. */}
+      <div className="mc-schedule-grid__scroll">
+        <div className="mc-schedule-grid__row">
+          <div className="mc-schedule-header-cell" aria-hidden="true">
+            Horario
+          </div>
+          {columns.map((day) => (
+            <div key={day} className="mc-schedule-day-header">
+              {day}
+            </div>
+          ))}
         </div>
-        {columns.map((day) => (
-          <div key={day} className="mc-schedule-day-header">
-            {day}
+
+        {rows.map((row, rowIndex) => (
+          <div key={`${row.label}-${rowIndex}`} className="mc-schedule-grid__row">
+            <div className="mc-schedule-time-col">
+              {row.sublabel ? (
+                <span>
+                  {row.label}
+                  <span aria-hidden="true"> – </span>
+                  {row.sublabel}
+                </span>
+              ) : (
+                <span>{row.label}</span>
+              )}
+            </div>
+
+            {columns.map((day, colIndex) => {
+              const cell = rowIndex * columns.length + colIndex + 1;
+              const isOccupied = selected.has(cell);
+              const timeRange = row.sublabel ? `${row.label} – ${row.sublabel}` : row.label;
+
+              return (
+                <button
+                  key={cell}
+                  type="button"
+                  className={`mc-schedule-cell${isOccupied ? ' mc-schedule-cell--occupied' : ''}`}
+                  aria-pressed={isOccupied}
+                  aria-label={`${day}, ${timeRange}`}
+                  disabled={disabled}
+                  onClick={() => onToggle(cell)}
+                >
+                  {isOccupied && (
+                    <OccupiedIcon size={18} strokeWidth={2} className="mc-schedule-cell__icon" aria-hidden="true" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         ))}
       </div>
-
-      {rows.map((row, rowIndex) => (
-        <div key={`${row.label}-${rowIndex}`} className="mc-schedule-grid__row">
-          <div className="mc-schedule-time-col">
-            {row.sublabel ? (
-              <span>
-                {row.label}
-                <span aria-hidden="true"> – </span>
-                {row.sublabel}
-              </span>
-            ) : (
-              <span>{row.label}</span>
-            )}
-          </div>
-
-          {columns.map((day, colIndex) => {
-            const cell = rowIndex * columns.length + colIndex + 1;
-            const isOccupied = selected.has(cell);
-            const timeRange = row.sublabel ? `${row.label} – ${row.sublabel}` : row.label;
-
-            return (
-              <button
-                key={cell}
-                type="button"
-                className={`mc-schedule-cell${isOccupied ? ' mc-schedule-cell--occupied' : ''}`}
-                aria-pressed={isOccupied}
-                aria-label={`${day}, ${timeRange}`}
-                disabled={disabled}
-                onClick={() => onToggle(cell)}
-              >
-                {isOccupied && (
-                  <OccupiedIcon size={18} strokeWidth={2} className="mc-schedule-cell__icon" aria-hidden="true" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      ))}
     </div>
   );
 }

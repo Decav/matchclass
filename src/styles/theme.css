@@ -226,6 +226,11 @@
    * ------------------------------------------------------------------- */
   --mc-hero-bg: linear-gradient(135deg, #0c1322 0%, #1b2a4a 55%, #16223a 100%);
   --mc-gradient-text-on-dark: linear-gradient(90deg, #e8a838, #a5b4fc);
+  /* Affordance de scroll horizontal de las retículas en mobile (RC-020 §6).
+     Es una sombra y no un degradado al color de la tarjeta: las celdas de la
+     grilla del alumno son blancas sobre tarjeta blanca, así que un fade a
+     `--mc-card` sería literalmente invisible ahí. */
+  --mc-scroll-edge-shadow: linear-gradient(to left, rgb(0 0 0 / 14%), transparent);
 
   /* ---------------------------------------------------------------------
    * 16. Z-index layers
@@ -234,11 +239,24 @@
   --mc-z-dropdown: 10;
   --mc-z-sticky: 20;
   --mc-z-fixed: 30;
-  --mc-z-sidebar: 50;
+  /* RC-020 D1 — estos dos van juntos y en este orden a propósito: el sidebar
+     mobile se pinta ENCIMA de su propio overlay. Hasta RC-020 era al revés
+     (sidebar 50 / overlay 100) y el resultado era el bug de HU-17 Escenario 4:
+     al abrir el menú, la capa de fondo quedaba sobre el panel, los ítems se
+     veían atenuados y cualquier toque sobre ellos lo capturaba el overlay, que
+     cerraba el menú en vez de navegar.
+     No se reordena el resto de la escala (la 12-design-system pide no tocarla
+     sin coordinación): modal, toast y tooltip siguen por encima de los dos.
+     `theme-z-index.test.ts` fija la relación — ningún test de componente la ve. */
   --mc-z-overlay: 100;
+  --mc-z-sidebar: 110;
   --mc-z-modal: 200;
   --mc-z-toast: 300;
   --mc-z-tooltip: 400;
+
+  /* Fondo del overlay del sidebar mobile (`.mc-sidebar-overlay`). Mismo valor
+     que el `bg-black/50` de Tailwind que usaba `Q5AppShell` antes de RC-020. */
+  --mc-overlay-bg: rgb(0 0 0 / 50%);
 
   /* ---------------------------------------------------------------------
    * 17. Transiciones
@@ -313,6 +331,10 @@
 
   --mc-brand-primary-bg: rgb(255 255 255 / 8%);
   --mc-schedule-header-bg: rgb(255 255 255 / 5%);
+
+  /* Sobre el navy de la card hace falta más opacidad para que la sombra del
+     borde se lea. */
+  --mc-scroll-edge-shadow: linear-gradient(to left, rgb(0 0 0 / 40%), transparent);
 
   /* Grilla de bloques: el ocupado mantiene el navy pero se distingue por el
    * borde dorado — casi se funde con el fondo sin él, no quitarlo. */
@@ -396,9 +418,32 @@ body {
   transform: translateX(0);
 }
 
+/**
+ * Capa de fondo que se monta con el sidebar abierto en mobile (`Q5AppShell`).
+ *
+ * Vive acá y no como una utilidad Tailwind de `z-index` arbitrario por la
+ * D1 de RC-020: el z-index de esta pieza es justo lo que se rompió, así que
+ * tiene que quedar declarado junto al del sidebar y ser legible y testeable en
+ * un solo lugar. `--mc-z-overlay` (100) queda **por debajo** de
+ * `--mc-z-sidebar` (110): el overlay solo intercepta los toques fuera del
+ * panel, nunca los de los ítems del menú.
+ */
+.mc-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mc-z-overlay);
+  background: var(--mc-overlay-bg);
+}
+
 @media (min-width: 1024px) {
   .mc-sidebar {
     transform: translateX(0);
+  }
+
+  /* Desde 1024px el sidebar es fijo y el botón hamburguesa está oculto: no hay
+     forma de abrir el panel, y por lo tanto tampoco overlay que mostrar. */
+  .mc-sidebar-overlay {
+    display: none;
   }
 }
 
@@ -1231,19 +1276,62 @@ body {
  * ------------------------------------------------------------------- */
 
 .mc-schedule-grid {
+  position: relative;
   background: var(--mc-card);
   border-radius: var(--mc-radius-lg);
   padding: var(--mc-spacing-6);
   display: flex;
   flex-direction: column;
-  gap: var(--mc-spacing-2);
   transition: background-color var(--mc-transition-slow);
 }
 
+/**
+ * Contenedor de scroll horizontal de la retícula (RC-020 §6).
+ *
+ * Es un elemento aparte de `.mc-schedule-grid` a propósito: la tarjeta se queda
+ * con el fondo, el radio y el padding —y con el `::after` del affordance, que no
+ * debe desplazarse con el contenido— y el scroll queda acotado al área de las
+ * celdas. Además así la columna de horarios se ancla al borde interno de la
+ * tarjeta y no al borde de la pantalla.
+ */
+.mc-schedule-grid__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-2);
+  overflow-x: auto;
+}
+
+/**
+ * `min-width: max-content` es la mitad no obvia del arreglo: sin esto la fila
+ * se estira al ancho del contenedor y las celdas que sobran se salen de su
+ * propia caja, con dos consecuencias — el `position: sticky` de la columna de
+ * horarios queda limitado a un bloque contenedor más angosto que el contenido y
+ * deja de funcionar. Con `max-content` la fila mide lo que suman sus celdas
+ * (columna de 80px + gaps + 5 × `min-width` de celda) y el contenedor scrollea
+ * de verdad. Cuando sobra ancho, `stretch` gana igual y las celdas crecen.
+ */
 .mc-schedule-grid__row {
   display: flex;
   align-items: stretch;
   gap: 10px;
+  min-width: max-content;
+}
+
+/**
+ * La columna de horarios (cabecera incluida) queda fija al scrollear en
+ * horizontal. Necesita fondo opaco propio y `z-index`, o las celdas —que
+ * arrastran su propio fondo— se ven pasar por debajo.
+ *
+ * La sombra sólida de 10px pinta el gap que queda a la derecha de la columna:
+ * el elemento sticky solo cubre sus propios 80px y por ese hueco se verían
+ * asomar las celdas en movimiento.
+ */
+.mc-schedule-header-cell,
+.mc-schedule-time-col {
+  position: sticky;
+  left: 0;
+  z-index: var(--mc-z-sticky);
+  box-shadow: 10px 0 0 var(--mc-card);
 }
 
 .mc-schedule-header-cell {
@@ -1260,8 +1348,11 @@ body {
   color: var(--mc-text-tertiary);
 }
 
+/* El mismo `min-width` que la celda: si la cabecera pudiera comprimirse más
+   que la columna que rotula, los días dejarían de alinearse con sus celdas. */
 .mc-schedule-day-header {
   flex: 1;
+  min-width: 44px;
   height: 28px;
   display: flex;
   align-items: center;
@@ -1280,14 +1371,21 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
+  background: var(--mc-card);
   font-family: var(--mc-font-mono);
   font-size: 11px;
   font-weight: var(--mc-font-semibold);
   color: var(--mc-text-secondary);
 }
 
+/* `min-width` y no solo `flex: 1`: con `flex: 1` a secas la celda se comprime
+   sin piso, en 375px baja de 30px y el contenido nunca excede el contenedor
+   —así que un `overflow-x: auto` por sí solo no activa ningún scroll—. El piso
+   es el mínimo táctil de 44px de la HU (§Escenario 6); por encima de ese ancho
+   las celdas siguen creciendo repartidas. */
 .mc-schedule-cell {
   flex: 1;
+  min-width: 44px;
   height: 52px;
   display: flex;
   align-items: center;
@@ -1772,6 +1870,7 @@ body {
 }
 
 .mc-heatmap {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--mc-spacing-1);
@@ -1781,10 +1880,34 @@ body {
   transition: background-color var(--mc-transition-slow);
 }
 
+/* Mismo criterio que `.mc-schedule-grid__scroll` (RC-020 §6): la tarjeta se
+   queda con fondo, padding y affordance, y el scroll horizontal se acota al
+   área de celdas. La leyenda queda fuera del contenedor de scroll. */
+.mc-heatmap__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mc-spacing-1);
+  overflow-x: auto;
+}
+
+/* Ver la nota de `.mc-schedule-grid__row`: sin `max-content` la fila no
+   desborda su propia caja y la columna de horas sticky no tiene margen donde
+   desplazarse. */
 .mc-heatmap__row {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: max-content;
+}
+
+/* Columna de horas fija al scrollear; el gap es de 6px acá, no de 10. */
+.mc-heatmap__time-header,
+.mc-heatmap__time-col {
+  position: sticky;
+  left: 0;
+  z-index: var(--mc-z-sticky);
+  background: var(--mc-card);
+  box-shadow: 6px 0 0 var(--mc-card);
 }
 
 .mc-heatmap__time-header {
@@ -1793,8 +1916,11 @@ body {
   height: 24px;
 }
 
+/* Ver `.mc-schedule-day-header`: la cabecera comparte el piso de la celda para
+   no desalinearse de su columna. */
 .mc-heatmap__day-header {
   flex: 1;
+  min-width: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1806,11 +1932,17 @@ body {
   color: var(--mc-text-primary);
 }
 
+/* `align-self: stretch` es obligatorio, no cosmético: la fila es
+   `align-items: center`, así que sin esto la columna solo mide el alto de sus
+   dos líneas de texto (~24px) contra los 40px de la celda — y al scrollear, las
+   celdas que pasan por debajo se veían asomar como una muesca arriba y abajo del
+   fondo opaco. */
 .mc-heatmap__time-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
   gap: 1px;
   flex-shrink: 0;
   width: 72px;
@@ -1824,6 +1956,9 @@ body {
    colores saturados y el porcentaje debe leerse igual en todos. */
 .mc-heatmap__cell {
   flex: 1;
+  /* Mismo piso táctil que `.mc-schedule-cell`: sin él las 5 celdas se comprimen
+     hasta ~40px en 375px y el contenedor nunca llega a desbordar. */
+  min-width: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2126,11 +2261,18 @@ body {
 /* Barra de código: no es `Q3CodeInput` (RC-015 §10). El tab Alumno son seis
    celdas de un carácter; el frame de la landing dibuja un input de texto
    normal de 460×56 con el botón adosado dentro del padding de 4. */
+/* `width: 100%` no es cosmético (RC-020, HU-17 Escenario 1): el contenedor
+   quedaba shrink-to-fit dentro del hero, así que el `max-width: 100%` de la
+   barra se resolvía contra sus propios 460px y no acotaba nada — en 375px la
+   barra desbordaba la pantalla. Con el ancho del hero, `max-width` sí frena, y
+   en desktop no cambia nada: la barra sigue en 460px centrada por
+   `align-items: center`. */
 .mc-landing-code {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--mc-spacing-2);
+  width: 100%;
 }
 
 .mc-landing-code__bar {
@@ -2247,4 +2389,144 @@ body {
   font-size: 13px;
   line-height: var(--mc-leading-normal);
   color: var(--mc-text-secondary);
+}
+
+/* ---------------------------------------------------------------------
+ * Adaptación mobile (RC-020, HU-17).
+ *
+ * Dos umbrales, no uno (RC-020 D2):
+ * - **1024px** — sidebar fijo. Vive arriba, junto a `.mc-sidebar` /
+ *   `.mc-sidebar-overlay`, y no se toca acá.
+ * - **767px** — reflow de contenido: es este bloque. Una tablet de 800px queda
+ *   con menú por overlay y el layout de dos columnas donde todavía cabe, en vez
+ *   de un sidebar fijo de 280px comiéndose el ancho de una grilla de 50 celdas.
+ *
+ * Lo estructural de las retículas (`min-width` de celda, `min-width:
+ * max-content` de fila, contenedores de scroll y columnas sticky) NO está acá:
+ * es inerte cuando sobra ancho y se declara junto a cada componente, para que
+ * el arreglo se lea completo en un solo lugar.
+ *
+ * El `.pen` no tiene frames mobile —todas las HU anteriores declararon "Mobile
+ * postergado"—, así que las medidas de acá salen de las reglas de RC-020 §6 y
+ * no de un nodo de diseño.
+ * ------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  /* Padding lateral de 16px en todo el marco de la app y en las tarjetas
+     (RC-020 §6): en 375px los 24px de desktop se comen el ancho que necesitan
+     las seis celdas del código de sala y la retícula. */
+  .mc-topbar {
+    padding-inline: var(--mc-spacing-4);
+  }
+
+  .mc-content {
+    padding: var(--mc-spacing-4);
+  }
+
+  .mc-card {
+    padding: var(--mc-spacing-4);
+  }
+
+  .mc-create-room-card {
+    padding: var(--mc-spacing-4);
+  }
+
+  /* Landing: el hero y el bloque "Cómo funciona" traen 40px de padding lateral
+     del frame de desktop. */
+  .mc-landing__hero {
+    padding: var(--mc-spacing-10) var(--mc-spacing-4) var(--mc-spacing-8);
+  }
+
+  .mc-landing__how {
+    padding: var(--mc-spacing-8) var(--mc-spacing-4);
+  }
+
+  .mc-landing__footer {
+    padding: var(--mc-spacing-8) var(--mc-spacing-4);
+  }
+
+  /* Las tres cards de "Cómo funciona" apilan. En fila no era solo cuestión de
+     estética: el ícono de 56px es `flex-shrink: 0`, así que las tres juntas
+     tienen un ancho mínimo mayor que la pantalla y desbordaban en horizontal. */
+  .mc-landing__cards {
+    flex-direction: column;
+  }
+
+  /* A ancho completo ya no hace falta acotar la línea de texto a 220px. */
+  .mc-landing-card__desc {
+    max-width: none;
+  }
+
+  /* Pantalla del alumno: no usa `Q5AppShell`, así que su padding se ajusta
+     aparte del de `.mc-content`. */
+  .mc-student-page {
+    padding: var(--mc-spacing-6) var(--mc-spacing-4);
+  }
+
+  .mc-student-grid__legend {
+    flex-wrap: wrap;
+    gap: var(--mc-spacing-3);
+    padding: 0 var(--mc-spacing-4) var(--mc-spacing-4);
+  }
+
+  .mc-schedule-grid {
+    padding: var(--mc-spacing-4);
+  }
+
+  /* Mínimo táctil de 44px (HU-17 Escenario 6) en los dos controles que el
+     diseño de desktop dibuja más chicos: los botones de ícono de la topbar
+     quedaban en 36-38px (ícono de 20-22px más `p-2`) y el kebab de la card de
+     sala mide 36×32 exactos. Solo bajo 767px: en desktop esas medidas salen de
+     nodos concretos del `.pen` y con puntero no hacen falta 44px. */
+  .mc-topbar .mc-btn-ghost {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mc-room-actions__trigger {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Affordance de scroll horizontal de las tres retículas (HU-17 Escenario 3:
+     "un indicador visual sugiere que hay más contenido a la derecha").
+     Va en la tarjeta y no en el contenedor de scroll a propósito: un
+     pseudo-elemento del propio scroller se desplazaría con el contenido.
+
+     Es un degradado estático: saber si el contenedor está desbordado —y en qué
+     posición del scroll— no se puede consultar desde CSS. Detectarlo pediría JS
+     o `animation-timeline: scroll()`, y ninguna de las dos cosas la justifica un
+     indicador decorativo. Por debajo de 767px la retícula desborda en cualquier
+     teléfono de ~414px o menos, que es el caso que la HU quiere cubrir. */
+  .mc-schedule-grid::after,
+  .mc-heatmap::after {
+    content: '';
+    position: absolute;
+    top: var(--mc-spacing-4);
+    right: 0;
+    bottom: var(--mc-spacing-4);
+    width: var(--mc-spacing-6);
+    pointer-events: none;
+    background: var(--mc-scroll-edge-shadow);
+    border-radius: 0 var(--mc-radius-md) var(--mc-radius-md) 0;
+  }
+
+  /* Resultados: una sola columna con el ranking arriba (RC-020 D3). Se resuelve
+     con `order` y no reordenando el JSX — en desktop el orden del DOM (mapa,
+     después ranking) sigue siendo el correcto y es el que lee un lector de
+     pantalla ahí. `align-items` vuelve a `stretch`: con `flex-start` y dirección
+     vertical las dos secciones se encogerían a su ancho de contenido. */
+  .mc-results-columns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mc-results-columns > :first-child {
+    order: 2;
+  }
+
+  .mc-results-columns__aside {
+    order: 1;
+    width: 100%;
+  }
 }
